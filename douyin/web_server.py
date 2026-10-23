@@ -133,6 +133,10 @@ class Jobs:
             except Cancelled:
                 self.update(key, state="cancelled", message="已取消")
             except Exception as exc:
+                # Always leave the real failure reason in the server log;
+                # the job message shown to visitors stays generic for
+                # unexpected errors. Resolver stage logs pinpoint the stage.
+                self.on_log(f"解析失败：{type(exc).__name__}: {str(exc)[:200]}")
                 self.update(key, state="failed", message=str(exc) if isinstance(exc, DownloadError) else "解析失败，请检查电脑网络后重试。")
             finally:
                 self.active_cancel = None

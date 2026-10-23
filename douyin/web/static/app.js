@@ -1,4 +1,9 @@
 'use strict';
+// Path prefix of this app as seen by the browser: '' when served standalone
+// at the root, '/douyin' when the portal proxy mounts it under /douyin.
+// Video preview / origin links must stay under the same prefix: a bare
+// '/files/<id>' at the portal belongs to the file station, not this app.
+const APP_PREFIX = window.location.pathname.replace(/\/+$/, '');
 let csrf = '', timer, lastSnapshot = '', noticeTimer;
 const transfers = new Map();
 const $ = id => document.getElementById(id);
@@ -75,10 +80,10 @@ function render(jobs){
     const footer=node('div','job-footer'),actions=node('div','job-actions'),secondary=node('div','job-secondary');
     footer.append(node('small','',job.state==='ready'?'直连下载':'单个视频作品'));
     if(job.state==='ready'){
-      const preview=node('button','preview-button','预览');preview.type='button';preview.onclick=()=>{$('preview-video').src='/files/'+job.id;$('preview-dialog').showModal();};
+      const preview=node('button','preview-button','预览');preview.type='button';preview.onclick=()=>{$('preview-video').src=APP_PREFIX+'/files/'+job.id;$('preview-dialog').showModal();};
       const save=node('button','save-button',transfers.has(job.id)?'设备接收中…':'直接下载 ↓');save.type='button';save.disabled=transfers.has(job.id);save.onclick=()=>directDownload(job);actions.append(preview,save);
       const cancel=node('button','text-button cancel-client','取消接收');cancel.hidden=!transfers.has(job.id);cancel.onclick=()=>{const t=transfers.get(job.id);if(t){t.cancelled=true;t.controller.abort();}};secondary.append(cancel);
-      const origin=node('a','text-button','源站打开 ↗');origin.href='/files/'+job.id;origin.target='_blank';origin.rel='noopener noreferrer';origin.referrerPolicy='no-referrer';secondary.append(origin);
+      const origin=node('a','text-button','源站打开 ↗');origin.href=APP_PREFIX+'/files/'+job.id;origin.target='_blank';origin.rel='noopener noreferrer';origin.referrerPolicy='no-referrer';secondary.append(origin);
       const retry=node('button','text-button','重新解析');retry.onclick=async()=>{try{await api('/api/jobs',{method:'POST',body:JSON.stringify({text:job.link})});refresh();}catch(e){notify(e.message);}};secondary.append(retry);
     }else if(['queued','resolving'].includes(job.state)){
       const cancel=node('button','text-button','取消');cancel.onclick=async()=>{try{await api('/api/jobs/'+job.id+'/cancel',{method:'POST',body:'{}'});refresh();}catch(e){notify(e.message);}};actions.append(cancel);

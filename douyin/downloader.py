@@ -1,11 +1,13 @@
 """Local Douyin resolver and atomic MP4 downloader. No hosted parsing service."""
 from __future__ import annotations
 
+import base64
 import html
 import http.cookiejar
 import json
 import os
 import re
+import socket
 import sys
 import threading
 import time
@@ -17,6 +19,21 @@ from urllib.request import HTTPCookieProcessor, Request, build_opener
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 MOBILE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1"
+
+
+def _clean(text, limit=160):
+    """One-line, log-safe text: URLs lose their query string (queries can
+    carry signatures), whitespace collapses. Never pass cookies or full
+    signed URLs here."""
+    text = re.sub(r"(https?://[^\s?]+)\?[^\s]*", r"\1?…", str(text))
+    return " ".join(text.split())[:limit]
+
+
+def _host(url):
+    try:
+        return urlparse(url).hostname or "?"
+    except ValueError:
+        return "?"
 
 
 def _default_data_dir():
@@ -100,6 +117,17 @@ class _YtdlpQuiet:
     def debug(self, msg): pass
     def warning(self, msg): pass
     def error(self, msg): pass
+
+
+class _YtdlpLog:
+    """Like _YtdlpQuiet but remembers the last error line so a failed stage
+    can be diagnosed from the server log instead of failing silently."""
+    def __init__(self):
+        self.last_error = ""
+    def debug(self, msg): pass
+    def warning(self, msg): pass
+    def error(self, msg):
+        self.last_error = str(msg)
 
 
 def _ytdlp_cookiefile():
@@ -235,6 +263,7 @@ class Resolver:
             except DownloadError:
                 raise
             except Exception as exc:
+                self.log(f"短链接展开失败：{type(exc).__name__}: {_clean(exc, 120)}")
                 raise DownloadError("短链接无法打开，请检查网络或使用完整视频网址。") from exc
         if not wanted:
             raise DownloadError("链接中没有找到视频编号；请使用单个视频的分享链接。")
@@ -242,21 +271,24 @@ class Resolver:
         mobile = f"https://www.iesdouyin.com/share/video/{wanted}/"
         try:
             with self.opener.open(Request(mobile, headers={"User-Agent": MOBILE_UA}), timeout=15) as response:
+                status = response.status
                 info = detail_from_html(response.read(8 * 1024 * 1024).decode("utf-8", "replace"), wanted)
             if info:
                 info.headers = {"User-Agent": MOBILE_UA, "Referer": "https://www.douyin.com/"}
                 info.cookies = list(self.jar)
                 return info
+            self.log(f"阶段1 分享页：HTTP {status}，页面未包含该作品数据，转下一级")
         except DownloadError:
             raise
-        except Exception:
-            pass
+        except Exception as exc:
+            self.log(f"阶段1 分享页失败：{type(exc).__name__}: {_clean(exc, 120)}")
         check_cancel(self.cancel)
         # yt-dlp remains replaceable through requirements.txt / the update script.
         self.log("分享页未返回视频，尝试开源解析引擎…")
+        ytdlp_log = _YtdlpLog()
         try:
             import yt_dlp
-            opts = {"quiet": True, "no_warnings": True, "logger": _YtdlpQuiet(), "socket_timeout": 12,
+            opts = {"quiet": True, "no_warnings": True, "logger": ytdlp_log, "socket_timeout": 12,
                     "retries": 0, "extractor_retries": 0, "noplaylist": True}
             cookiefile = _ytdlp_cookiefile()
             if cookiefile:
@@ -267,8 +299,10 @@ class Resolver:
             if formats:
                 return Video(wanted, data.get("title") or "抖音视频", [f["url"] for f in formats],
                              {**data.get("http_headers", {}), **formats[0].get("http_headers", {})}, list(ydl.cookiejar))
-        except Exception:
-            pass
+            self.log("阶段2 yt-dlp：未返回可用的合并 MP4 流，转浏览器级")
+        except Exception as exc:
+            detail = ytdlp_log.last_error or str(exc)
+            self.log(f"阶段2 yt-dlp 失败：{type(exc).__name__}: {_clean(detail, 140)}")
         check_cancel(self.cancel)
         return self.browser_resolve(wanted)
 
@@ -331,10 +365,13 @@ class Resolver:
                 target = f"https://www.douyin.com/video/{wanted}"
                 try:
                     page.goto(target, wait_until="domcontentloaded", timeout=35000)
-                except Exception:
+                except Exception as exc:
                     if page.is_closed():
                         raise DownloadError("浏览器已关闭，请重试")
+                    self.log(f"阶段3 浏览器导航异常：{type(exc).__name__}: {_clean(exc, 140)}")
                 deadline = time.monotonic() + self.browser_timeout
+                verify_noted = False
+                tick = 0
                 while time.monotonic() < deadline:
                     check_cancel(self.cancel)
                     if page.is_closed():
@@ -354,11 +391,151 @@ class Resolver:
                         info = found[0]
                         info.headers = {"User-Agent": page.evaluate("navigator.userAgent"), "Referer": target}
                         info.cookies = browser_cookies(context.cookies())
+                        self.log(f"阶段3 浏览器取得作品数据（页面 host={_host(page.url)}）")
                         return info
+                    tick += 1
+                    if not verify_noted and tick % 4 == 0:
+                        try:
+                            text = page.evaluate("document.body ? document.body.innerText.slice(0, 2000) : ''")
+                            if any(mark in text for mark in ("安全验证", "滑动验证", "输入验证码", "请完成验证")):
+                                verify_noted = True
+                                self.log("阶段3 页面出现人工验证；无头浏览器无法自动完成，将等待超时")
+                        except Exception:
+                            pass
                     page.wait_for_timeout(500)
+                try:
+                    self.log(f"阶段3 超时未取得数据：停留在 host={_host(page.url)}，标题={_clean(page.title(), 60)!r}")
+                except Exception:
+                    pass
                 raise DownloadError("未取得视频。请点击“登录抖音”，完成验证后关闭浏览器，再重试。作品也可能已删除、私密或不是视频。")
             finally:
                 context.close()
+
+
+def _env_proxy_url():
+    """The environment's proxy for HTTPS (systemd EnvironmentFile or shell),
+    following the usual lowercase-first convention."""
+    for key in ("https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY", "http_proxy", "HTTP_PROXY"):
+        value = os.environ.get(key)
+        if value:
+            return value
+    return None
+
+
+class _ConnectRelay:
+    """Localhost CONNECT relay in front of the environment's HTTP proxy.
+
+    Server evidence (2026-10-23): this host's egress gateway accepts CONNECT
+    from Python/yt-dlp, but Chromium's direct CONNECT attempts die with
+    ERR_TUNNEL_CONNECTION_FAILED before any HTTP response arrives, while the
+    same request relayed through a local socket succeeds. So on proxied
+    Linux hosts Chromium is pointed at this relay instead. Credentials in
+    the proxy URL stay inside this process: the relay injects
+    Proxy-Authorization itself, so neither Chromium nor the logs see them.
+    """
+
+    def __init__(self, upstream_url):
+        parsed = urlparse(upstream_url)
+        if parsed.scheme != "http" or not parsed.hostname:
+            raise ValueError("unsupported proxy URL for relay")
+        self._host = parsed.hostname
+        self._port = parsed.port or 80
+        self._auth = None
+        if parsed.username:
+            raw = f"{unquote(parsed.username)}:{unquote(parsed.password or '')}"
+            self._auth = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+        self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._server.bind(("127.0.0.1", 0))
+        self._server.listen(16)
+        self._closed = False
+        self.port = self._server.getsockname()[1]
+        threading.Thread(target=self._accept_loop, daemon=True).start()
+
+    @property
+    def url(self):
+        return f"http://127.0.0.1:{self.port}"
+
+    def close(self):
+        self._closed = True
+        try:
+            self._server.close()
+        except OSError:
+            pass
+
+    def _accept_loop(self):
+        while not self._closed:
+            try:
+                client, _ = self._server.accept()
+            except OSError:
+                return
+            threading.Thread(target=self._handle, args=(client,), daemon=True).start()
+
+    def _upstream(self):
+        last = None
+        for family, socktype, proto, _, addr in socket.getaddrinfo(self._host, self._port, 0, socket.SOCK_STREAM):
+            sock = socket.socket(family, socktype, proto)
+            try:
+                sock.settimeout(15)
+                sock.connect(addr)
+                return sock
+            except OSError as exc:
+                last = exc
+                sock.close()
+        raise last or OSError("cannot reach proxy")
+
+    @staticmethod
+    def _read_head(sock):
+        data = b""
+        while b"\r\n\r\n" not in data and len(data) < 65536:
+            chunk = sock.recv(4096)
+            if not chunk:
+                break
+            data += chunk
+        head, _, rest = data.partition(b"\r\n\r\n")
+        return head + b"\r\n\r\n", rest
+
+    def _handle(self, client):
+        upstream = None
+        try:
+            head, rest = self._read_head(client)
+            if not head.strip():
+                return
+            if self._auth and b"proxy-authorization" not in head.lower():
+                head = head[:-2] + f"Proxy-Authorization: Basic {self._auth}\r\n\r\n".encode("ascii")
+            upstream = self._upstream()
+            upstream.sendall(head + rest)
+            rhead, rrest = self._read_head(upstream)
+            client.sendall(rhead + rrest)
+
+            def pump(src, dst):
+                try:
+                    while True:
+                        chunk = src.recv(65536)
+                        if not chunk:
+                            break
+                        dst.sendall(chunk)
+                except OSError:
+                    pass
+                finally:
+                    try:
+                        dst.shutdown(socket.SHUT_WR)
+                    except OSError:
+                        pass
+
+            worker = threading.Thread(target=pump, args=(client, upstream), daemon=True)
+            worker.start()
+            pump(upstream, client)
+            worker.join(timeout=5)
+        except OSError:
+            pass
+        finally:
+            for sock in (client, upstream):
+                if sock is not None:
+                    try:
+                        sock.close()
+                    except OSError:
+                        pass
 
 
 def launch_browser(playwright):
@@ -369,6 +546,8 @@ def launch_browser(playwright):
     # no Edge, so there we run Playwright's Chromium headlessly instead.
     # DOUYIN_BROWSER_HEADLESS=0/1 forces the mode on any platform.
     forced = os.environ.get("DOUYIN_BROWSER_HEADLESS")
+    extra = {}
+    relay = None
     if os.name == "nt" and forced is None:
         attempts = [{"channel": "msedge", "headless": False},
                     {"channel": "chrome", "headless": False}]
@@ -379,15 +558,40 @@ def launch_browser(playwright):
                     {"headless": headless}]
         if os.name == "nt":
             attempts.insert(0, {"channel": "msedge", "headless": headless})
+        else:
+            # Server mode: honour the environment's egress proxy via a
+            # localhost relay (Chromium cannot CONNECT to this gateway
+            # directly, see _ConnectRelay). The gateway also TLS-intercepts
+            # with a platform CA that Chromium does not trust while Python
+            # does (via SSL_CERT_FILE), so when that CA bundle is in play,
+            # certificate errors are ignored for this metadata-only browser.
+            proxy_url = _env_proxy_url()
+            if proxy_url:
+                try:
+                    relay = _ConnectRelay(proxy_url)
+                    extra["proxy"] = {"server": relay.url}
+                except Exception:
+                    extra["proxy"] = {"server": proxy_url}
+                bypass = os.environ.get("no_proxy") or os.environ.get("NO_PROXY")
+                if bypass:
+                    extra["proxy"]["bypass"] = bypass
+            if os.environ.get("DOUYIN_BROWSER_IGNORE_HTTPS_ERRORS") == "1" or os.environ.get("SSL_CERT_FILE"):
+                extra["ignore_https_errors"] = True
     for options in attempts:
         try:
-            return playwright.chromium.launch_persistent_context(
+            context = playwright.chromium.launch_persistent_context(
                 str(DATA / "browser-profile"), viewport={"width": 1100, "height": 760},
                 accept_downloads=False,
-                args=["--autoplay-policy=user-gesture-required"], **options)
+                args=["--autoplay-policy=user-gesture-required"], **{**extra, **options})
+            if relay is not None:
+                context.on("close", relay.close)
+            return context
         except Exception as exc:
-            errors.append(type(exc).__name__)
-    raise DownloadError("无法启动浏览器。请安装 Edge、Chrome 或 Chromium（Linux 可运行 python -m playwright install chromium），并关闭本工具先前打开的抖音浏览器后重试。")
+            errors.append(f"{options.get('channel', 'chromium')}: {type(exc).__name__}: {_clean(exc, 100)}")
+    if relay is not None:
+        relay.close()
+    raise DownloadError("无法启动浏览器：" + "；".join(errors) +
+                        "。请安装 Edge、Chrome 或 Chromium（Linux 可运行 python -m playwright install chromium），并关闭本工具先前打开的抖音浏览器后重试。")
 
 
 def browser_cookies(values):
