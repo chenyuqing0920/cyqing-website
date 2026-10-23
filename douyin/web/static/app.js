@@ -99,6 +99,11 @@ $('clear-button').onclick=()=>{$('share-text').value='';$('share-text').focus();
 $('refresh-button').onclick=refresh;
 $('logout-button').onclick=async()=>{try{await api('/api/logout',{method:'POST',body:'{}'});showLogin();}catch(e){notify(e.message);}};
 $('close-preview').onclick=()=>$('preview-dialog').close();
+let logTimer;
+async function refreshLogs(){try{const data=await api('/api/logs?limit=300');const el=$('log-content');el.textContent=data.logs.length?data.logs.join('\n'):'暂无日志';el.scrollTop=el.scrollHeight;}catch(e){}}
+$('log-button').onclick=()=>{$('log-dialog').showModal();refreshLogs();clearInterval(logTimer);logTimer=setInterval(()=>{if($('log-dialog').open)refreshLogs();},3000);};
+$('close-log').onclick=()=>$('log-dialog').close();
+$('log-dialog').addEventListener('close',()=>clearInterval(logTimer));
 $('preview-dialog').addEventListener('close',()=>{$('preview-video').pause();$('preview-video').removeAttribute('src');$('preview-video').load();});
 $('preview-video').addEventListener('error',()=>notify('源站拒绝直连或地址已过期，请重新解析；此模式不会使用电脑转发。'));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&csrf)refresh();});

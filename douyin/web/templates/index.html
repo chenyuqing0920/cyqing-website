@@ -23,7 +23,7 @@
       <section class="panel"><div class="panel-top"><div><h2>视频链接</h2><p>支持完整分享文案，也可以一次粘贴多条链接</p></div></div>
         <form id="download-form"><label class="sr-only" for="share-text">视频链接或分享文案</label><textarea id="share-text" rows="4" maxlength="12000" placeholder="在 App 里点击「分享 → 复制链接」，&#10;然后粘贴到这里…" required></textarea><div class="form-bottom"><span>支持抖音 / TikTok 等平台，可一次多条</span><button type="button" class="quiet" id="clear-button">清空</button></div><button class="primary" id="submit-button" type="submit">解析链接 <span>→</span></button></form>
       </section>
-      <section class="library"><div class="library-heading"><div><span class="eyebrow">DIRECT FROM THE SOURCE</span><h2>解析记录 <span id="job-count">0</span></h2></div><button id="refresh-button" class="text-button">刷新</button></div><div id="jobs"><div class="empty"><span>↓</span><h3>把喜欢的视频存到你的设备</h3><p>解析完成后直接下载，视频流量不经过服务端</p></div></div></section>
+      <section class="library"><div class="library-heading"><div><span class="eyebrow">DIRECT FROM THE SOURCE</span><h2>解析记录 <span id="job-count">0</span></h2></div><span><button id="log-button" class="text-button">日志</button><button id="refresh-button" class="text-button">刷新</button></span></div><div id="jobs"><div class="empty"><span>↓</span><h3>把喜欢的视频存到你的设备</h3><p>解析完成后直接下载，视频流量不经过服务端</p></div></div></section>
       <div class="session-row"><span>已连接私人下载站</span><button id="logout-button" class="text-button">退出登录</button></div>
     </div>
     <div id="notice" role="status" aria-live="polite" hidden></div>
@@ -32,4 +32,5 @@
   </main>
 </div>
 <dialog id="preview-dialog"><div class="preview-heading"><h2>视频预览</h2><button id="close-preview" class="text-button">关闭 ✕</button></div><video id="preview-video" controls playsinline preload="metadata"></video><p>苹果手机可通过视频菜单或分享菜单保存视频。</p></dialog>
+<dialog id="log-dialog"><div class="preview-heading"><h2>运行日志</h2><button id="close-log" class="text-button">关闭 ✕</button></div><pre id="log-content">暂无日志</pre><p>解析各阶段的记录同时保存在服务数据目录的 resolver.log；此处显示最近 500 条，打开时自动刷新。</p></dialog>
 </body></html>

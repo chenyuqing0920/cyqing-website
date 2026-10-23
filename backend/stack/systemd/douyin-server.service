@@ -7,6 +7,7 @@ Wants=network-online.target
 Type=simple
 Environment=HOME=/home/hatch
 Environment=DOUYIN_DATA_DIR=/home/hatch/workspace/services/douyin-downloader/data
+Environment=DOUYIN_BROWSER_TIMEOUT=180
 EnvironmentFile=-/etc/environment.d/80-hatch-egress.conf
 ExecStart=/home/hatch/workspace/projects/douyin-direct-downloader/.venv/bin/python /home/hatch/workspace/projects/douyin-direct-downloader/linux_server.py --port 7863
 WorkingDirectory=/home/hatch/workspace/projects/douyin-direct-downloader

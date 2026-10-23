@@ -36,6 +36,7 @@ def main():
 
     password = os.environ.get("DOUYIN_ACCESS_PASSWORD") or load_access()["password"]
     jobs = Jobs(on_log=lambda message: print(f"[jobs] {message}", flush=True))
+    jobs.emit("网页服务进程已启动，日志系统就绪")
     app = create_app(jobs, password)
     server = create_server(app, host=args.host, port=args.port, threads=8,
                            max_request_body_size=16384, channel_timeout=60,

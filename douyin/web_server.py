@@ -48,7 +48,7 @@ def load_access(data_dir=DATA):
 
 
 class Jobs:
-    def __init__(self, resolver_factory=Resolver, on_log=None):
+    def __init__(self, resolver_factory=Resolver, on_log=None, log_file=None):
         self.resolver_factory = resolver_factory
         self.on_log = on_log or (lambda _: None)
         self.lock = threading.RLock()
@@ -57,8 +57,43 @@ class Jobs:
         self.stopping = threading.Event()
         self.active_cancel = None
         self.browser_lock = threading.Lock()
+        # Viewable run log: an in-memory ring buffer mirrored to a file in
+        # the data directory, so parse stages and failures can be read from
+        # the web UI (/api/logs) instead of only from the server's stdout.
+        self._log_lock = threading.Lock()
+        self._log_lines = deque(maxlen=500)
+        self._log_file = Path(log_file) if log_file else DATA / "resolver.log"
+        self._load_log_tail()
         self.worker = threading.Thread(target=self.run, daemon=True)
         self.worker.start()
+
+    def _load_log_tail(self):
+        try:
+            if self._log_file.stat().st_size > 2_000_000:
+                self._log_file.replace(self._log_file.with_suffix(".log.1"))
+            if self._log_file.exists():
+                tail = self._log_file.read_text("utf-8", "replace").splitlines()[-200:]
+                self._log_lines.extend(tail)
+        except OSError:
+            pass
+
+    def emit(self, text):
+        """Record one timestamped line in the log buffer + file, then hand
+        it to the console callback as before."""
+        line = time.strftime("%Y-%m-%d %H:%M:%S") + " " + str(text)
+        with self._log_lock:
+            self._log_lines.append(line)
+            try:
+                with self._log_file.open("a", encoding="utf-8") as handle:
+                    handle.write(line + "\n")
+            except OSError:
+                pass
+        self.on_log(str(text))
+
+    def logs(self, limit=500):
+        with self._log_lock:
+            lines = list(self._log_lines)
+        return lines[-max(1, min(limit, 500)):]
 
     def submit(self, links):
         with self.lock:
@@ -76,6 +111,7 @@ class Jobs:
                 self.items[key] = job
                 self.queue.put(key)
                 result.append(key)
+            self.emit(f"收到 {len(links)} 个解析任务")
             return result
 
     def update(self, key, **values):
@@ -123,20 +159,20 @@ class Jobs:
                     self.update(key, state="resolving", message="正在解析视频")
                     def log(message):
                         self.update(key, message=str(message))
-                        self.on_log(str(message))
+                        self.emit(str(message))
                     info = self.resolver_factory(log, cancel).resolve(job["link"])
                     if cancel.is_set():
                         raise Cancelled("已取消")
                     self.update(key, title=info.title, state="ready", info=info, resolved=time.time(),
                                 message="已解析，访客设备直接从视频源站下载")
-                self.on_log(f"已解析：{info.title}（只提供地址，不转发视频）")
+                self.emit(f"已解析：{info.title}（只提供地址，不转发视频）")
             except Cancelled:
                 self.update(key, state="cancelled", message="已取消")
             except Exception as exc:
                 # Always leave the real failure reason in the server log;
                 # the job message shown to visitors stays generic for
                 # unexpected errors. Resolver stage logs pinpoint the stage.
-                self.on_log(f"解析失败：{type(exc).__name__}: {str(exc)[:200]}")
+                self.emit(f"解析失败：{type(exc).__name__}: {str(exc)[:200]}")
                 self.update(key, state="failed", message=str(exc) if isinstance(exc, DownloadError) else "解析失败，请检查电脑网络后重试。")
             finally:
                 self.active_cancel = None
@@ -268,6 +304,12 @@ def create_app(jobs, password, resources=None):
     @protect
     def list_jobs():
         return jsonify(jobs=jobs.snapshots())
+
+    @app.get("/api/logs")
+    @protect
+    def list_logs():
+        limit = request.args.get("limit", default=200, type=int) or 200
+        return jsonify(logs=jobs.logs(limit))
 
     @app.post("/api/jobs")
     @protect

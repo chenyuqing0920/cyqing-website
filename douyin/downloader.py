@@ -242,7 +242,16 @@ def detail_from_html(page, wanted):
 
 
 class Resolver:
-    def __init__(self, log, cancel, browser_timeout=100):
+    def __init__(self, log, cancel, browser_timeout=None):
+        if browser_timeout is None:
+            # Servers can raise the browser-stage polling budget via the
+            # environment: measured on this host, the aweme data arrives
+            # ~85-125s after navigation through the egress gateway, past
+            # the 100s desktop default. Desktop behaviour is unchanged.
+            try:
+                browser_timeout = int(os.environ.get("DOUYIN_BROWSER_TIMEOUT", "100"))
+            except ValueError:
+                browser_timeout = 100
         self.log, self.cancel, self.browser_timeout = log, cancel, browser_timeout
         self.jar = http.cookiejar.CookieJar()
         self.opener = build_opener(HTTPCookieProcessor(self.jar))
@@ -364,7 +373,11 @@ class Resolver:
                 page.on("response", receive)
                 target = f"https://www.douyin.com/video/{wanted}"
                 try:
-                    page.goto(target, wait_until="domcontentloaded", timeout=35000)
+                    # "commit" is enough: the data comes from polling API
+                    # responses / page HTML below, and this page often never
+                    # reaches domcontentloaded through the egress gateway,
+                    # which would burn ~35s of the polling budget.
+                    page.goto(target, wait_until="commit", timeout=35000)
                 except Exception as exc:
                     if page.is_closed():
                         raise DownloadError("浏览器已关闭，请重试")
