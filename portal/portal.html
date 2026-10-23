@@ -208,7 +208,7 @@ nav.scrolled{border-bottom-color:var(--line)}
 .hub-tx p{margin:0;font-size:13px;color:var(--muted);line-height:1.55}
 .hub-go{font-size:20px;color:var(--muted);flex:none}
 .more-link{font-size:13px;color:var(--accent);text-decoration:none;white-space:nowrap}
-#posts-view main>section:first-child,#prompts-view main>section:first-child{padding-top:118px}
+#collection-view main>section:first-child{padding-top:118px}
 /* ================= 手机端单独适配（≤640px，2026-10-23） ================= */
 @media (max-width:640px){
   main{padding:0 18px}
@@ -222,7 +222,7 @@ nav.scrolled{border-bottom-color:var(--line)}
   .hub-card{padding:17px}
   .hub-ic{width:46px;height:46px;font-size:21px;border-radius:12px}
   .hub-tx h3{font-size:17.5px}
-  #posts-view main>section:first-child,#prompts-view main>section:first-child{padding-top:88px}
+  #collection-view main>section:first-child{padding-top:88px}
   .kicker{font-size:11px;letter-spacing:.16em;margin-bottom:16px}
   .hero h1{font-size:37px;line-height:1.22;margin-bottom:18px}
   .hero h1 .thin{font-size:.5em;margin-top:10px}
@@ -253,10 +253,8 @@ nav.scrolled{border-bottom-color:var(--line)}
   <div class="nav-in">
     <a class="brand" href="#/">陈玉庆<span class="dot">.</span><span class="en">Chen Yuqing</span></a>
     <div class="nav-links">
-      <a href="#/posts">文章</a>
-      <a href="#/" data-nav="projects">项目</a>
-      <a href="#/prompts">提示词</a>
-      <a href="#/" data-nav="about">关于</a>
+      <a href="#/collection">收藏</a>
+      <a href="#/" data-nav="tools">工具</a>
     </div>
   </div>
 </nav>
@@ -264,9 +262,9 @@ nav.scrolled{border-bottom-color:var(--line)}
 <div id="home-view">
 <main>
   <header class="hero">
-    <p class="kicker">Personal Blog — AI Application</p>
-    <h1>把想法，做成能跑的东西。<span class="thin">写代码，也写字。记录做过的项目、踩过的坑，和正在学的东西。</span></h1>
-    <p class="sub">你好，我是陈玉庆，人工智能专业出身，现在做 AI 应用开发。主要折腾 RAG 知识库、文档智能生成和各种顺手的小工具——这个博客本身，也运行在我自己的服务器上。</p>
+    <p class="kicker">Personal Site — Collection &amp; Tools</p>
+    <h1>把想法，做成能跑的东西。<span class="thin">收集好用的东西，也做顺手的工具。</span></h1>
+    <p class="sub">你好，我是陈玉庆，人工智能专业出身，现在做 AI 应用开发。这里是我的个人小站：一边放我的收藏，一边放自己做的工具——本站运行在我自己的服务器上。</p>
     <div class="hero-meta">
       <span><b>方向</b>　AI 应用开发 / RAG</span>
       <span><b>学历</b>　河南工学院 · 人工智能本科</span>
@@ -274,18 +272,19 @@ nav.scrolled{border-bottom-color:var(--line)}
     </div>
   </header>
 
-  <section id="hub" style="border-bottom:none;padding-bottom:8px">
+  <section id="collect" style="border-bottom:none;padding-bottom:8px">
+    <div class="hub-grid" style="grid-template-columns:1fr">
+      <a class="hub-card reveal" href="#/collection">
+        <span class="hub-ic g2">★</span>
+        <span class="hub-tx"><h3>我的收藏</h3><p id="fav-desc">提示词与好网站，慢慢攒</p></span>
+        <span class="hub-go">→</span>
+      </a>
+    </div>
+  </section>
+
+  <section id="tools">
+    <div class="sec-head reveal"><h2>工具</h2><span class="en">Toolbox</span><span class="rule"></span></div>
     <div class="hub-grid">
-      <a class="hub-card reveal" href="#/posts">
-        <span class="hub-ic g1">✎</span>
-        <span class="hub-tx"><h3>博客文章</h3><p id="hub-posts-desc">项目记录、踩坑与学习笔记</p></span>
-        <span class="hub-go">→</span>
-      </a>
-      <a class="hub-card reveal" href="#/prompts">
-        <span class="hub-ic g2">❖</span>
-        <span class="hub-tx"><h3>提示词库</h3><p id="hub-prompts-desc">按场景分类的好用提示词，点卡片复制</p></span>
-        <span class="hub-go">→</span>
-      </a>
       <a class="hub-card reveal" href="/douyin">
         <span class="hub-ic g3">⬇</span>
         <span class="hub-tx"><h3>随手存 · 视频下载</h3><p>粘贴抖音 / TikTok 链接，存原画视频</p></span>
@@ -298,51 +297,6 @@ nav.scrolled{border-bottom-color:var(--line)}
       </a>
     </div>
   </section>
-
-  <section id="latest">
-    <div class="sec-head reveal"><h2>最新文章</h2><span class="en">Latest</span><span class="rule"></span><a class="more-link" href="#/posts">全部文章 →</a></div>
-    <div id="latest-list"></div>
-  </section>
-
-  <section id="projects">
-    <div class="sec-head reveal"><h2>项目</h2><span class="en">Projects</span><span class="rule"></span></div>
-    <div class="cards">
-      <a class="card reveal" href="#/post/rag-fa">
-        <span class="no">01</span>
-        <h3>FA 数据 RAG 知识库</h3>
-        <p>给硬件测试的历史 FA 数据做检索增强问答：文档切分、向量检索加重排，让工程师用一句话查到相似的历史故障与处理记录。已完成可行性验证与演示，后交由 IT 团队正式开发。</p>
-        <span class="go">读这篇记录 →</span>
-      </a>
-      <a class="card reveal" href="https://github.com/chenyuqing0920/douyin-direct-downloader" target="_blank" rel="noopener">
-        <span class="no">02</span>
-        <h3>随手存 · 视频下载</h3>
-        <p>开源的抖音视频下载工具：三级解析拿到原画直链，设备打开网页就能存。最近接入 yt-dlp，开始支持 TikTok 等更多平台。</p>
-        <span class="go">GitHub 仓库 →</span>
-      </a>
-      <a class="card reveal" href="#/post/tax-skill">
-        <span class="no">03</span>
-        <h3>抵税文档 AI 生成</h3>
-        <p>基于 Word 模板、按标题结构自动生成计划书、主题报告、月志与会议记录的 AI 技能，把每月重复的文档工作变成填空题。研发中。</p>
-        <span class="go">读这篇记录 →</span>
-      </a>
-    </div>
-  </section>
-
-  <section id="about">
-    <div class="sec-head reveal"><h2>关于</h2><span class="en">About</span><span class="rule"></span></div>
-    <div class="about reveal">
-      <div class="avatar">庆</div>
-      <div>
-        <p><b>陈玉庆</b>，2025 年毕业于河南工学院人工智能专业，目前在制造业一线做 AI 应用开发：把大模型接进真实业务里，从 RAG 知识库到文档自动生成，关心的是「能不能真的用起来」。</p>
-        <p>业余喜欢自己搭服务、写小工具。这个站点跑在一台云服务器上，用我自己的域名，通过 Cloudflare 隧道对外提供服务，掉线有自动巡检恢复——折腾的过程都记在文章里。</p>
-        <div class="links">
-          <a href="https://github.com/chenyuqing0920" target="_blank" rel="noopener">GitHub · chenyuqing0920</a>
-          <a href="/files/">文件小站</a>
-          <a href="/douyin">随手存</a>
-        </div>
-      </div>
-    </div>
-  </section>
 </main>
 <footer>
   <span class="fbrand">陈玉庆<span style="color:var(--accent)">.</span></span>
@@ -352,23 +306,12 @@ nav.scrolled{border-bottom-color:var(--line)}
 </footer>
 </div>
 
-<div id="posts-view" hidden>
+<div id="collection-view" hidden>
 <main>
   <section>
-    <div class="sec-head"><h2>全部文章</h2><span class="en">Writing</span><span class="rule"></span></div>
-    <div id="post-list"></div>
+    <div class="sec-head"><h2>网站收藏</h2><span class="en">Bookmarks</span><span class="rule"></span></div>
+    <div class="cards" id="site-grid"></div>
   </section>
-</main>
-<footer>
-  <span class="fbrand">陈玉庆<span style="color:var(--accent)">.</span></span>
-  <span>© 2026 Chen Yuqing</span>
-  <span class="sp"></span>
-  <span><a href="#/" style="color:inherit">← 返回首页</a></span>
-</footer>
-</div>
-
-<div id="prompts-view" hidden>
-<main>
   <section>
     <div class="sec-head"><h2>提示词库</h2><span class="en">Prompt Library</span><span class="rule"></span></div>
     <p class="sub" style="margin-bottom:14px">平时收集的好用提示词，按场景分类，点复制就能拿去用。内容选自 GitHub 等平台的开源合集，来源标注在每张卡片上。</p>
@@ -385,139 +328,9 @@ nav.scrolled{border-bottom-color:var(--line)}
 </footer>
 </div>
 
-<div id="article-view" hidden>
-  <article class="article">
-    <a class="back" href="#/">← 返回首页</a>
-    <div><span class="tag" id="art-tag"></span></div>
-    <h1 id="art-title"></h1>
-    <div class="meta" id="art-meta"></div>
-    <div class="body" id="art-body"></div>
-    <div class="end">—— 全文完 · 陈玉庆</div>
-  </article>
-  <footer>
-    <span class="fbrand">陈玉庆<span style="color:var(--accent)">.</span></span>
-    <span>© 2026 Chen Yuqing</span>
-    <span class="sp"></span>
-    <a href="#/" style="text-decoration:none">回到首页 ↑</a>
-  </footer>
-</div>
 <script>
-const POSTS = [
-  {
-    "id": "ai-design-sites",
-    "date": "2026-10-23",
-    "tag": "资源收藏",
-    "mins": 4,
-    "title": "拯救 AI 审美的 5 个宝藏网站",
-    "excerpt": "AI 写网页功能没问题，丑就丑在没参照。这 5 个站分别管提示词、动效组件、UI 元素和动画引擎，是我最近在抖音上刷到、挨个核实过的收藏。",
-    "body": [
-      {
-        "t": "p",
-        "x": "用 AI 写网页（vibe coding）有个通病：功能都能跑，就是丑。原因不在模型笨，而是你我都说不出「高级感」到底长什么样，AI 更无从下手。这 5 个网站就是来补参照的——刷到 AI教练振轩的一条抖音推荐，我挨个核实过，确实值得收藏。"
-      },
-      {
-        "t": "h",
-        "x": "1. Motion Sites：动效落地页的提示词库"
-      },
-      {
-        "t": "p",
-        "x": "motionsites.ai。收了上百个炫酷落地页的 AI 提示词，网上那些几千上万赞的网站视频，很多就是复制它的提示词、丢给 AI 编程工具一键复刻的，对国产大模型和 Codex 都适配。注意它家主要是付费包，免费试用的部分有限，先逛逛找感觉就好。"
-      },
-      {
-        "t": "h",
-        "x": "2. React Bits：开源动效组件"
-      },
-      {
-        "t": "p",
-        "x": "reactbits.dev。主打开源免费，包含上百个炫酷的动效组件：环形画廊、星空背景、吊带特效都有。看中哪个直接复制提示词或代码，开箱即用。"
-      },
-      {
-        "t": "h",
-        "x": "3. Uiverse：4000+ 开源 UI 元素"
-      },
-      {
-        "t": "p",
-        "x": "uiverse.io。4000 多个开源 UI 元素全部免费，按钮、卡片、开关、加载动画应有尽有，挑中就能拿到原代码（CSS / Tailwind），让网页的高级感立刻拉满。"
-      },
-      {
-        "t": "h",
-        "x": "4. Anime.js：老牌 JavaScript 动画引擎"
-      },
-      {
-        "t": "p",
-        "x": "animejs.com。在 GitHub 上狂揽几万星标的动画库：弹簧、拖拽、滚动联动、组件变形全都能做，复制代码就能一比一复刻动效。"
-      },
-      {
-        "t": "h",
-        "x": "5. Aceternity UI：大厂同款组件库"
-      },
-      {
-        "t": "p",
-        "x": "ui.aceternity.com。全球大厂都在用的组件库，内置 200 多个现成的高级组件，选中任意一个，原代码直接复制。"
-      },
-      {
-        "t": "p",
-        "x": "总结一下用法：让 AI 写页面之前，先在这几个站里挑好风格参照，把提示词或组件代码一起喂给它，产出立刻不一样。我的这个博客，接下来也打算照这个思路优化一轮。（来源：抖音 @AI教练 振轩）"
-      }
-    ]
-  },
-  {
-    id: "suishoucun-ytdlp", date: "2026-10-22", tag: "开源项目", mins: 5,
-    title: "随手存接入 yt-dlp：从「只下抖音」到多平台",
-    excerpt: "我的抖音下载小工具原来只认抖音。这次把 yt-dlp 接进来做通用解析，顺手把几个大平台的脾气都摸了一遍。",
-    body: [
-      {t:"p", x:"随手存是我开源的一个小工具，最早只解决一个问题：把抖音分享链接变成能直接下载的原画视频。它内部是三级解析——先走我自己写的分享页直解，失败了再退到 yt-dlp，最后才动用浏览器模拟。"},
-      {t:"p", x:"自研直解对抖音最好用，但每多一个平台就要多写一套。yt-dlp 恰好相反：它内置了 1752 个站点的解析器，YouTube、B 站、TikTok、微博、小红书都有现成的。所以这次的改法是：抖音继续走原来的三级链，其他平台一律交给 yt-dlp，挑出音视频合流的直链返回。"},
-      {t:"h", x:"实测了一圈，平台各有各的脾气"},
-      {t:"p", x:"TikTok 最顺利，无需登录就能解出直链。YouTube 直接被机器人校验拦下，明说要登录 cookie。B 站的接口对机房 IP 返回 412 风控。抖音的 yt-dlp 路径要求 fresh cookies，所以它反而不能当主力——自研直解继续排第一。快手最干脆：yt-dlp 里根本没有它的解析器，这条路走不通。"},
-      {t:"p", x:"结论是：所谓「不限制平台」，代码层面接上只是第一步，真正的门槛在各家的风控。为此我预留了 cookies.txt 的位置——把某个站的登录 cookie 放进数据目录，解析时会自动带上。门先留好，钥匙以后再说。"},
-      {t:"p", x:"代码在 GitHub 上：chenyuqing0920/douyin-direct-downloader，网页版就挂在这个站的「工具」区里，可以直接试。"}
-    ]
-  },
-  {
-    id: "my-own-domain", date: "2026-10-21", tag: "折腾记录", mins: 6,
-    title: "免费隧道轮换了一晚上，我把服务搬上了自己的域名",
-    excerpt: "localhost.run 的免费地址说换就换，Serveo 隔几分钟掉一次线。最后买了域名、上 Cloudflare 命名隧道，才算安稳。",
-    body: [
-      {t:"p", x:"我在这台云服务器上跑了几个自用小工具，想在外面也能打开，就需要一条从公网回来的隧道。最开始用的是 localhost.run 的免费隧道：能用，但地址是平台分的随机子域名，隔一阵就轮换一次，书签存了等于没存。"},
-      {t:"p", x:"后来换到 Serveo，想绑自己的域名。域名是在阿里云买的，cyqing.icu。Serveo 的免费转发稳定性一般，十几分钟就可能掉一次，还会在浏览器里插一个警告页。掉线、重连、再掉线，折腾了一晚上，我决定一步到位。"},
-      {t:"h", x:"Cloudflare 隧道，和它的三个暗坑"},
-      {t:"p", x:"Cloudflare 的命名隧道是免费的，地址固定、自带 HTTPS。官方 cloudflared 客户端在这台机器上死活连不上，排查下来有三个原因：它不读系统的代理环境变量、机器的 DNS 是假 IP 段、它自带的 HTTP 客户端也没走代理。最后的解法是给 cloudflared 打补丁自己编译：让它走 HTTP CONNECT 代理、用 DoH 查边缘节点地址。"},
-      {t:"code", x:"cloudflared tunnel run  # 补丁版：DialEdge 走代理 CONNECT\n# 隧道名 muse-vm，入口 https://tool.cyqing.icu"},
-      {t:"p", x:"隧道通了之后，把域名的 NS 从阿里云切到 Cloudflare，DNS 记录由隧道自动写。最后再把进程交给 systemd 托管、加一个每 2 分钟的零成本巡检：掉了自己拉起来，拉不起来才叫我。"},
-      {t:"p", x:"这一晚虚拟机本身还重启了十来次，每次都是巡检先发现、自动恢复。现在打开 tool.cyqing.icu，地址是自己的，证书是正经的，也不用再背随机字符串了。折腾到最后，想要的其实就是两个字：稳定。"}
-    ]
-  },
-  {
-    id: "rag-fa", date: "2026-10-18", tag: "RAG · 工作", mins: 7,
-    title: "给硬件测试的 FA 数据，做一个能问答的知识库",
-    excerpt: "历史故障分析报告散落在各处，查一个相似案例要翻半天。我用 RAG 做了个 Demo：一句话提问，返回最相关的历史 FA 记录。",
-    body: [
-      {t:"p", x:"硬件测试里积累了大量 FA（失效分析）数据：某批次产品出了什么问题、怎么定位的、最后怎么处理的。这些报告很有价值，但散在文档和表格里，新人遇到相似故障，想查历史案例基本靠问人。"},
-      {t:"h", x:"为什么是 RAG"},
-      {t:"p", x:"这类问题的答案都写在已有文档里，不需要模型「创作」，需要的是先把对的段落找出来，再让模型照着说。这正是 RAG（检索增强生成）的形状：文档切分、向量化入库；提问时先检索最相关的若干段，拼进提示词让模型作答，并附上出处。"},
-      {t:"p", x:"真正花时间的是检索质量。只靠向量相似度时，排在前面的经常是「话题相关但型号不对」的段落。后来在检索后面加了一道重排（Rerank），用交叉编码器对候选段落和问题重新打分，型号、现象都对得上的才排前面，答非所问的情况明显减少。"},
-      {t:"h", x:"Demo 之后"},
-      {t:"p", x:"这个 Demo 完成了可行性验证，也给老板做过演示——结论是方向成立，正式版本交由 IT 团队开发。回头看，Demo 阶段最值钱的不是代码，而是把三件事验证清楚了：数据能不能结构化地切出来、检索准不准、工程师愿不愿意用一句话提问代替翻文件夹。"},
-      {t:"p", x:"后面我专门补了 Rerank 和评估这一块：没有评估集，检索改得好不好全凭感觉；有了几十条带标注的问题，每次改切分或换模型，都能算出召回的变化。这大概是 Demo 和产品之间最实在的距离。"}
-    ]
-  },
-  {
-    id: "tax-skill", date: "2026-10-15", tag: "AI 应用", mins: 5,
-    title: "每月重复写文档，我做了个按模板生成的 AI 技能",
-    excerpt: "计划书、主题报告、月志、会议记录——格式固定、内容重复。这类文档不该每月从空白页开始写。",
-    body: [
-      {t:"p", x:"有一类文档每月都要写：计划书、主题报告、月志、会议记录。格式是固定的 Word 模板，标题层级、段落顺序都不变，变的只是内容。每次从空白文档开始复制粘贴、改日期、凑段落，纯粹是体力活。"},
-      {t:"p", x:"我做了一个还在研发中的 AI 技能：把 Word 模板的标题结构解析出来，生成时按标题逐节填充——模型只需要专注写每一节的内容，格式、样式、编号全部由模板说了算。这样产出的文档打开就是成品的样子，不用再二次排版。"},
-      {t:"h", x:"难点不在生成，在约束"},
-      {t:"p", x:"让模型自由写，它会把格式写飞：标题层级乱跳、自创小节、长度失控。所以生成的关键是约束——按模板的标题树逐节下发任务，每一节给定字数范围和口径，写完再按原结构装回模板。模型负责内容，人负责模板，边界清楚了，输出才稳定。"},
-      {t:"p", x:"这个技能还在研发中，下一步是把常用的几类文档都做成模板包，再让使用者只需要填几个关键信息就能出整篇。目标很朴素：每月少在 Word 里熬几个小时。"}
-    ]
-  }
-];
 
 const $ = (s) => document.querySelector(s);
-const listEl = $("#post-list");
 
 const PROMPTS = [
   
@@ -583,75 +396,45 @@ function renderPrompts(){
     }));
 }
 
-function fmtDate(d){ return d.replace(/-/g, "."); }
+const SITES = [
+  {name: "React Bits", url: "https://reactbits.dev", price: "免费开源", desc: "React 动效组件库：文字特效、鼠标跟随、背景动画，复制代码就能用，救 AI 生成页面的塑料感。"},
+  {name: "Uiverse", url: "https://uiverse.io", price: "免费", desc: "4000+ 社区开源 UI 元素：按钮、卡片、加载动画、开关，现成的 CSS / Tailwind 代码拿来即用。"},
+  {name: "Anime.js", url: "https://animejs.com", price: "免费开源", desc: "轻量 JavaScript 动画引擎，管线动画、滚动触发、SVG 路径动画都很拿手，想精细控制动画时用它。"},
+  {name: "Aceternity UI", url: "https://ui.aceternity.com", price: "免费 + 付费", desc: "200+ 炫酷现成组件：3D 卡片、光束背景、视差滚动，基于 Tailwind + Framer Motion，整段粘贴。"},
+  {name: "Motion Sites", url: "https://motionsites.ai", price: "多数付费", desc: "专门给 AI 编程用的动效提示词库：把带高级动效的落地页拆成提示词，复制给 AI 就能生成同款效果。"},
+];
 
-function postRow(p){
-  return `
-    <a class="post reveal" href="#/post/${p.id}">
-      <span class="date">${fmtDate(p.date)}</span>
-      <span><span class="tag">${p.tag}</span>
-        <h3>${p.title}</h3><p>${p.excerpt}</p></span>
-      <span class="mins">${p.mins} 分钟</span>
-    </a>`;
+function renderSites(){
+  const g = $("#site-grid");
+  if (!g || g.innerHTML) return;
+  g.innerHTML = SITES.map((x, i) => `
+    <a class="card reveal" href="${x.url}" target="_blank" rel="noopener">
+      <span class="no">0${i + 1} · ${x.price}</span>
+      <h3>${x.name}</h3>
+      <p>${x.desc}</p>
+      <span class="go">访问站点 →</span>
+    </a>`).join("");
 }
 
-function renderList(){
-  listEl.innerHTML = POSTS.map(postRow).join("");
-}
-
-function renderHome(){
-  const latest = $("#latest-list");
-  if (latest && !latest.innerHTML) latest.innerHTML = POSTS.slice(0, 3).map(postRow).join("");
-  const pd = $("#hub-posts-desc");
-  if (pd) pd.textContent = `共 ${POSTS.length} 篇 · 最新《${POSTS[0].title}》`;
-  const pr = $("#hub-prompts-desc");
-  if (pr) pr.textContent = `共 ${PROMPTS.length} 条 · ${new Set(PROMPTS.map(x => x.cat)).size} 个分类，点卡片复制`;
-}
-
-function renderArticle(p){
-  $("#art-tag").textContent = p.tag;
-  $("#art-title").textContent = p.title;
-  $("#art-meta").textContent = `${fmtDate(p.date)} · 阅读约 ${p.mins} 分钟 · 陈玉庆`;
-  $("#art-body").innerHTML = p.body.map(b => {
-    if (b.t === "h") return `<h4>${b.x}</h4>`;
-    if (b.t === "code") return `<pre><code>${b.x.replace(/</g,"&lt;")}</code></pre>`;
-    return `<p>${b.x}</p>`;
-  }).join("");
+function fillFav(){
+  const d = $("#fav-desc");
+  if (d) d.textContent = `提示词 ${PROMPTS.length} 条 · 网站收藏 ${SITES.length} 个，慢慢攒`;
 }
 
 function route(){
   const hash = location.hash || "#/";
-  const m = hash.match(/^#\/post\/([\w-]+)$/);
-  const post = m && POSTS.find(p => p.id === m[1]);
-  if (hash === "#/prompts"){
+  if (hash === "#/collection" || hash === "#/prompts"){
     $("#home-view").hidden = true;
-    $("#article-view").hidden = true;
-    $("#posts-view").hidden = true;
-    $("#prompts-view").hidden = false;
-    document.title = "提示词库 · 陈玉庆";
+    $("#collection-view").hidden = false;
+    document.title = "我的收藏 · 陈玉庆";
+    renderSites();
     renderPrompts();
-  } else if (hash === "#/posts"){
-    $("#home-view").hidden = true;
-    $("#article-view").hidden = true;
-    $("#prompts-view").hidden = true;
-    $("#posts-view").hidden = false;
-    document.title = "全部文章 · 陈玉庆";
-    if (!listEl.innerHTML) renderList();
     observeReveals();
-  } else if (post){
-    renderArticle(post);
-    $("#home-view").hidden = true;
-    $("#prompts-view").hidden = true;
-    $("#posts-view").hidden = true;
-    $("#article-view").hidden = false;
-    document.title = post.title + " · 陈玉庆";
   } else {
-    $("#article-view").hidden = true;
-    $("#prompts-view").hidden = true;
-    $("#posts-view").hidden = true;
+    $("#collection-view").hidden = true;
     $("#home-view").hidden = false;
-    document.title = "陈玉庆 · 个人博客";
-    renderHome();
+    document.title = "陈玉庆 · 个人小站";
+    fillFav();
     observeReveals();
   }
   window.scrollTo(0, 0);
@@ -669,22 +452,16 @@ function observeReveals(){
 
 function onScroll(){
   $("#topnav").classList.toggle("scrolled", window.scrollY > 8);
-  const inArticle = !$("#article-view").hidden;
-  const bar = $("#progress");
-  if (inArticle){
-    const h = document.documentElement;
-    const max = h.scrollHeight - h.clientHeight;
-    bar.style.width = (max > 0 ? (window.scrollY / max) * 100 : 0) + "%";
-  } else bar.style.width = "0";
+  const h = document.documentElement;
+  const max = h.scrollHeight - h.clientHeight;
+  $("#progress").style.width = (max > 0 ? (window.scrollY / max) * 100 : 0) + "%";
 }
 window.addEventListener("scroll", onScroll, {passive: true});
 
 document.querySelectorAll("[data-nav]").forEach(a => {
-  a.addEventListener("click", (e) => {
-    const id = a.dataset.nav;
-    if (!$("#article-view").hidden){ /* going home first */ }
+  a.addEventListener("click", () => {
     setTimeout(() => {
-      const el = document.getElementById(id);
+      const el = document.getElementById(a.dataset.nav);
       if (el) el.scrollIntoView({behavior: "smooth"});
     }, 60);
   });
