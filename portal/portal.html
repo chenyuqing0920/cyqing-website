@@ -190,6 +190,25 @@ nav.scrolled{border-bottom-color:var(--line)}
   body::before{animation:none}
   .reveal{transition:none}
 }
+/* ================= 入口式首页（2026-10-23 结构优化） ================= */
+.hero{padding:118px 0 40px}
+.hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.hub-card{display:flex;align-items:center;gap:16px;padding:22px;border:1px solid var(--line);border-radius:16px;
+  background:var(--card);text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:transform .2s,box-shadow .2s,border-color .2s}
+.hub-card:hover{transform:translateY(-3px);border-color:rgba(167,139,250,.5);
+  box-shadow:0 16px 40px rgba(124,58,237,.25)}
+.hub-ic{width:52px;height:52px;flex:none;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff}
+.hub-ic.g1{background:linear-gradient(135deg,#7c3aed,#db2777)}
+.hub-ic.g2{background:linear-gradient(135deg,#db2777,#f59e0b)}
+.hub-ic.g3{background:linear-gradient(135deg,#0d9488,#22d3ee)}
+.hub-ic.g4{background:linear-gradient(135deg,#2563eb,#7c3aed)}
+.hub-tx{flex:1;min-width:0}
+.hub-tx h3{margin:0 0 4px;font-family:var(--serif);font-size:19px;font-weight:700}
+.hub-tx p{margin:0;font-size:13px;color:var(--muted);line-height:1.55}
+.hub-go{font-size:20px;color:var(--muted);flex:none}
+.more-link{font-size:13px;color:var(--accent);text-decoration:none;white-space:nowrap}
+#posts-view main>section:first-child,#prompts-view main>section:first-child{padding-top:118px}
 /* ================= 手机端单独适配（≤640px，2026-10-23） ================= */
 @media (max-width:640px){
   main{padding:0 18px}
@@ -198,7 +217,12 @@ nav.scrolled{border-bottom-color:var(--line)}
   .nav-links{gap:13px;font-size:12.5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
   .nav-links::-webkit-scrollbar{display:none}
   .nav-links a{white-space:nowrap}
-  .hero{padding:104px 0 46px}
+  .hero{padding:92px 0 34px}
+  .hub-grid{grid-template-columns:1fr}
+  .hub-card{padding:17px}
+  .hub-ic{width:46px;height:46px;font-size:21px;border-radius:12px}
+  .hub-tx h3{font-size:17.5px}
+  #posts-view main>section:first-child,#prompts-view main>section:first-child{padding-top:88px}
   .kicker{font-size:11px;letter-spacing:.16em;margin-bottom:16px}
   .hero h1{font-size:37px;line-height:1.22;margin-bottom:18px}
   .hero h1 .thin{font-size:.5em;margin-top:10px}
@@ -229,10 +253,9 @@ nav.scrolled{border-bottom-color:var(--line)}
   <div class="nav-in">
     <a class="brand" href="#/">陈玉庆<span class="dot">.</span><span class="en">Chen Yuqing</span></a>
     <div class="nav-links">
-      <a href="#/" data-nav="posts">文章</a>
+      <a href="#/posts">文章</a>
       <a href="#/" data-nav="projects">项目</a>
-      <a href="#/prompts" data-nav="prompts">提示词</a>
-      <a href="#/" data-nav="tools">工具</a>
+      <a href="#/prompts">提示词</a>
       <a href="#/" data-nav="about">关于</a>
     </div>
   </div>
@@ -251,9 +274,34 @@ nav.scrolled{border-bottom-color:var(--line)}
     </div>
   </header>
 
-  <section id="posts">
-    <div class="sec-head reveal"><h2>文章</h2><span class="en">Writing</span><span class="rule"></span></div>
-    <div id="post-list"></div>
+  <section id="hub" style="border-bottom:none;padding-bottom:8px">
+    <div class="hub-grid">
+      <a class="hub-card reveal" href="#/posts">
+        <span class="hub-ic g1">✎</span>
+        <span class="hub-tx"><h3>博客文章</h3><p id="hub-posts-desc">项目记录、踩坑与学习笔记</p></span>
+        <span class="hub-go">→</span>
+      </a>
+      <a class="hub-card reveal" href="#/prompts">
+        <span class="hub-ic g2">❖</span>
+        <span class="hub-tx"><h3>提示词库</h3><p id="hub-prompts-desc">按场景分类的好用提示词，点卡片复制</p></span>
+        <span class="hub-go">→</span>
+      </a>
+      <a class="hub-card reveal" href="/douyin">
+        <span class="hub-ic g3">⬇</span>
+        <span class="hub-tx"><h3>随手存 · 视频下载</h3><p>粘贴抖音 / TikTok 链接，存原画视频</p></span>
+        <span class="hub-go">→</span>
+      </a>
+      <a class="hub-card reveal" href="/files/">
+        <span class="hub-ic g4">▣</span>
+        <span class="hub-tx"><h3>文件小站</h3><p>上传下载，在手机和电脑之间倒腾文件</p></span>
+        <span class="hub-go">→</span>
+      </a>
+    </div>
+  </section>
+
+  <section id="latest">
+    <div class="sec-head reveal"><h2>最新文章</h2><span class="en">Latest</span><span class="rule"></span><a class="more-link" href="#/posts">全部文章 →</a></div>
+    <div id="latest-list"></div>
   </section>
 
   <section id="projects">
@@ -280,30 +328,6 @@ nav.scrolled{border-bottom-color:var(--line)}
     </div>
   </section>
 
-  <section id="tools">
-    <div class="sec-head reveal"><h2>工具</h2><span class="en">Toolbox</span><span class="rule"></span></div>
-    <div class="cards">
-      <a class="card reveal" href="/douyin">
-        <span class="no">Tool · 01</span>
-        <h3>随手存 · 视频下载</h3>
-        <p>粘贴视频链接或分享文案，解析出原视频地址，在手机或电脑上直接下载保存。抖音、TikTok 等平台可用。</p>
-        <span class="go">进入工具 →</span>
-      </a>
-      <a class="card reveal" href="/files/">
-        <span class="no">Tool · 02</span>
-        <h3>文件小站</h3>
-        <p>上传和下载文件，在手机和电脑之间倒腾东西用。文件都存在我自己的服务器上。</p>
-        <span class="go">进入工具 →</span>
-      </a>
-      <a class="card off reveal" href="#" aria-disabled="true">
-        <span class="no">Tool · 03</span>
-        <h3>留言板</h3>
-        <p>给我留言的小板子，还在路上。</p>
-        <span class="go soon">暂未开放</span>
-      </a>
-    </div>
-  </section>
-
   <section id="about">
     <div class="sec-head reveal"><h2>关于</h2><span class="en">About</span><span class="rule"></span></div>
     <div class="about reveal">
@@ -325,6 +349,21 @@ nav.scrolled{border-bottom-color:var(--line)}
   <span>© 2026 Chen Yuqing</span>
   <span class="sp"></span>
   <span>本站运行于一台云服务器 · 经 Cloudflare 隧道回家</span>
+</footer>
+</div>
+
+<div id="posts-view" hidden>
+<main>
+  <section>
+    <div class="sec-head"><h2>全部文章</h2><span class="en">Writing</span><span class="rule"></span></div>
+    <div id="post-list"></div>
+  </section>
+</main>
+<footer>
+  <span class="fbrand">陈玉庆<span style="color:var(--accent)">.</span></span>
+  <span>© 2026 Chen Yuqing</span>
+  <span class="sp"></span>
+  <span><a href="#/" style="color:inherit">← 返回首页</a></span>
 </footer>
 </div>
 
@@ -546,14 +585,27 @@ function renderPrompts(){
 
 function fmtDate(d){ return d.replace(/-/g, "."); }
 
-function renderList(){
-  listEl.innerHTML = POSTS.map(p => `
+function postRow(p){
+  return `
     <a class="post reveal" href="#/post/${p.id}">
       <span class="date">${fmtDate(p.date)}</span>
       <span><span class="tag">${p.tag}</span>
         <h3>${p.title}</h3><p>${p.excerpt}</p></span>
       <span class="mins">${p.mins} 分钟</span>
-    </a>`).join("");
+    </a>`;
+}
+
+function renderList(){
+  listEl.innerHTML = POSTS.map(postRow).join("");
+}
+
+function renderHome(){
+  const latest = $("#latest-list");
+  if (latest && !latest.innerHTML) latest.innerHTML = POSTS.slice(0, 3).map(postRow).join("");
+  const pd = $("#hub-posts-desc");
+  if (pd) pd.textContent = `共 ${POSTS.length} 篇 · 最新《${POSTS[0].title}》`;
+  const pr = $("#hub-prompts-desc");
+  if (pr) pr.textContent = `共 ${PROMPTS.length} 条 · ${new Set(PROMPTS.map(x => x.cat)).size} 个分类，点卡片复制`;
 }
 
 function renderArticle(p){
@@ -574,21 +626,32 @@ function route(){
   if (hash === "#/prompts"){
     $("#home-view").hidden = true;
     $("#article-view").hidden = true;
+    $("#posts-view").hidden = true;
     $("#prompts-view").hidden = false;
     document.title = "提示词库 · 陈玉庆";
     renderPrompts();
+  } else if (hash === "#/posts"){
+    $("#home-view").hidden = true;
+    $("#article-view").hidden = true;
+    $("#prompts-view").hidden = true;
+    $("#posts-view").hidden = false;
+    document.title = "全部文章 · 陈玉庆";
+    if (!listEl.innerHTML) renderList();
+    observeReveals();
   } else if (post){
     renderArticle(post);
     $("#home-view").hidden = true;
     $("#prompts-view").hidden = true;
+    $("#posts-view").hidden = true;
     $("#article-view").hidden = false;
     document.title = post.title + " · 陈玉庆";
   } else {
     $("#article-view").hidden = true;
     $("#prompts-view").hidden = true;
+    $("#posts-view").hidden = true;
     $("#home-view").hidden = false;
     document.title = "陈玉庆 · 个人博客";
-    if (!listEl.innerHTML) renderList();
+    renderHome();
     observeReveals();
   }
   window.scrollTo(0, 0);
