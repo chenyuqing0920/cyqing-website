@@ -1,6 +1,6 @@
 # cyqing-website
 
-陈玉庆的个人工具站全家桶：博客门户 + 随手存（抖音下载）+ 文件小站 + 微信任务桥 + 隧道运维，全部收进一个仓库，与服务器工作副本每小时自动同步。
+陈玉庆的个人网站（tool.cyqing.icu）全套代码：博客门户 + 随手存（抖音下载）+ 文件小站 + 隧道运维，与服务器工作副本每小时自动同步。本仓库只放网站相关内容。
 
 线上入口：https://tool.cyqing.icu （博客门户，/douyin 随手存，/files/ 文件小站）
 
@@ -13,8 +13,7 @@
 | `backend/stack/` | 前门代理 proxy.py（7860）、总启动脚本 start.sh、systemd 单元源文件 |
 | `backend/file-drop/` | 文件小站 app.py（7864）；files/ 与 data/ 为运行时数据，不入库 |
 | `backend/github-sync/` | 与 GitHub 每小时双向同步的脚本与单元 |
-| `wechat-bridge/` | 微信任务桥（iLink 协议）；state/ 为登录凭据，不入库 |
-| `cloudflare-lab/` | cloudflared 代理版补丁与构建记录（让官方隧道客户端走 HTTP 代理） |
+| `cloudflare-lab/` | 网站的 Cloudflare 隧道：cloudflared 代理版补丁与构建记录（让官方隧道客户端走 HTTP 代理） |
 
 ## 同步约定
 

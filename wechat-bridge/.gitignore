@@ -1,7 +1,0 @@
-state/
-inbox/
-outbox/
-logs/
-.venv/
-__pycache__/
-docs/*.html
