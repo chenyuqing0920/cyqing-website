@@ -1,0 +1,12 @@
+# Named tunnel config for the Muse VM portal.
+# Place the real file at ~/.cloudflared/config.yml together with the
+# tunnel credentials JSON issued by Cloudflare (mode 0600).
+# tunnel: <TUNNEL-UUID>
+# credentials-file: /home/hatch/.cloudflared/<TUNNEL-UUID>.json
+protocol: http2
+ha-connections: 4
+grace-period: 30s
+ingress:
+  - hostname: tool.cyqing.icu
+    service: http://127.0.0.1:7860
+  - service: http_status:404

@@ -1,0 +1,7 @@
+domain: tool.cyqing.icu
+provider: serveo.net (free, DNS authkey)
+key: ~/.ssh/serveo_tunnel
+fingerprint: SHA256:IX9gyXrorJIPni9aDXtwhc4XqMpevNPOUvS7xNBt5tU
+dns1: CNAME tool -> serveo.net
+dns2: TXT _serveo-authkey.tool -> SHA256:IX9gyXrorJIPni9aDXtwhc4XqMpevNPOUvS7xNBt5tU
+status: PRODUCTION entry since 2026-10-21 evening (user decision: localhost.run retired and its tunnel process killed; do not relaunch lhr). Launcher: serveo-start.sh (idempotent + self-healing: if the ssh process is alive but the public check is not 200 — e.g. Serveo log line "Port forwarding for tool.cyqing.icu expired" seen once on 2026-10-21 ~17:34 — it kills and relaunches). start.sh now calls serveo-start.sh and writes url.txt = http://tool.cyqing.icu. The douyin-watchdog patrol (every 2 min) now checks the Serveo process and http://tool.cyqing.icu /, /files/, /douyin. HTTP verified 200 for portal, douyin, files, login API; HTTPS still empty-reply (cert not provisioned); browsers may get the Serveo interstitial warning page on the free tunnel.

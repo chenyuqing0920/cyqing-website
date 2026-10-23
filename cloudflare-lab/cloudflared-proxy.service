@@ -1,0 +1,18 @@
+[Unit]
+Description=Cloudflare Tunnel (patched cloudflared-proxy) for tool.cyqing.icu
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=HOME=/home/hatch
+EnvironmentFile=-/etc/environment.d/80-hatch-egress.conf
+ExecStart=/home/hatch/workspace/services/cloudflare-lab/cloudflared-proxy tunnel --config /home/hatch/.cloudflared/config.yml run
+WorkingDirectory=/home/hatch/workspace/services/cloudflare-lab
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/hatch/workspace/services/cloudflare-lab/logs/cf-tunnel.log
+StandardError=append:/home/hatch/workspace/services/cloudflare-lab/logs/cf-tunnel.log
+
+[Install]
+WantedBy=multi-user.target

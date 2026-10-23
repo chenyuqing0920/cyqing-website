@@ -1,0 +1,18 @@
+[Unit]
+Description=File drop station (app.py) on 7864
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=HOME=/home/hatch
+EnvironmentFile=-/etc/environment.d/80-hatch-egress.conf
+ExecStart=/home/hatch/workspace/services/file-drop/.venv/bin/python /home/hatch/workspace/services/file-drop/app.py
+WorkingDirectory=/home/hatch/workspace/services/file-drop
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/hatch/workspace/services/file-drop/logs/app.log
+StandardError=append:/home/hatch/workspace/services/file-drop/logs/app.log
+
+[Install]
+WantedBy=multi-user.target

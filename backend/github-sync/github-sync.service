@@ -1,0 +1,7 @@
+[Unit]
+Description=Sync douyin-direct-downloader repo with GitHub
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/hatch/workspace/services/github-sync/sync.sh

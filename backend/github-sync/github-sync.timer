@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly GitHub sync for douyin-direct-downloader
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+Unit=github-sync.service
+
+[Install]
+WantedBy=timers.target
