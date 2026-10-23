@@ -2,7 +2,7 @@
 # cyqing-tools 全家桶仓库 <-> GitHub 自动同步（零 token 脚本）
 # 逻辑：fetch -> 本地有改动就提交 -> rebase 到远程最新 -> push；本地干净且远程领先则快进拉取。
 # 冲突时中止 rebase 并记日志，不自动裁决。
-REPO=/home/hatch/workspace/projects/cyqing-tools
+REPO=/home/hatch/workspace/projects/cyqing-website
 LOG=/home/hatch/workspace/services/github-sync/sync.log
 exec 9>/tmp/github-sync.lock
 flock -n 9 || exit 0

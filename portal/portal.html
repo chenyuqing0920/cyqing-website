@@ -190,6 +190,37 @@ nav.scrolled{border-bottom-color:var(--line)}
   body::before{animation:none}
   .reveal{transition:none}
 }
+/* ================= 手机端单独适配（≤640px，2026-10-23） ================= */
+@media (max-width:640px){
+  main{padding:0 18px}
+  .nav-in{padding:0 16px;gap:14px;height:56px}
+  .brand{font-size:17px;gap:5px}
+  .nav-links{gap:13px;font-size:12.5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-links a{white-space:nowrap}
+  .hero{padding:104px 0 46px}
+  .kicker{font-size:11px;letter-spacing:.16em;margin-bottom:16px}
+  .hero h1{font-size:37px;line-height:1.22;margin-bottom:18px}
+  .hero h1 .thin{font-size:.5em;margin-top:10px}
+  .hero .sub{font-size:14.5px;line-height:1.8;margin-bottom:26px}
+  .hero-meta{gap:8px 20px;font-size:12.5px}
+  section{padding:44px 0}
+  .sec-head{gap:10px;margin-bottom:26px}
+  .sec-head h2{font-size:22px}
+  .sec-head .en{letter-spacing:.18em;font-size:11px}
+  .post{padding:20px 2px;gap:6px}
+  .post h3{font-size:18.5px}
+  .post p{font-size:13.5px}
+  .cards{gap:12px}
+  .card{padding:19px}
+  .about{gap:22px}
+  .avatar{width:120px;height:120px;font-size:40px;margin:0 auto}
+  .article{padding:96px 0 60px}
+  .article .body p{font-size:15.5px;line-height:1.95}
+  .prompt-grid{grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))}
+  .pcard{padding:15px}
+  footer{padding:30px 18px 44px;gap:8px 18px}
+}
 </style>
 </head>
 <body>
