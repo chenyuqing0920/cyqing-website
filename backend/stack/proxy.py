@@ -11,7 +11,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-PORTAL_FILE = Path(__file__).resolve().parent / "portal.html"
+# Read the canonical source on every request. This also supports Windows
+# checkouts where Git stores a symlink as its target text.
+PORTAL_FILE = Path(__file__).resolve().parents[2] / "portal" / "portal.html"
+PORTAL_ASSETS = {"style.css": "text/css; charset=utf-8",
+                 "app.js": "text/javascript; charset=utf-8",
+                 "content.js": "text/javascript; charset=utf-8"}
 
 FILES_PORT = int(os.environ.get("PROXY_FILES_PORT", "7864"))
 DOUYIN_PORT = int(os.environ.get("PROXY_DOUYIN_PORT", "7863"))
@@ -67,6 +72,7 @@ class Handler(BaseHTTPRequestHandler):
             data = b"portal missing"
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         if self.command != "HEAD":
@@ -75,6 +81,24 @@ class Handler(BaseHTTPRequestHandler):
     def _forward(self):
         parts = urlsplit(self.path)
         p = parts.path
+        if self.command in ("GET", "HEAD") and p.startswith("/portal-assets/"):
+            name = p[len("/portal-assets/"):]
+            if name not in PORTAL_ASSETS:
+                self.send_error(404)
+                return
+            try:
+                data = (PORTAL_FILE.parent / name).read_bytes()
+            except OSError:
+                self.send_error(404)
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", PORTAL_ASSETS[name])
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(data)
+            return
         if self.command in ("GET", "HEAD") and p == "/":
             self._serve_portal()
             return

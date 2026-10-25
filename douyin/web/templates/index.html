@@ -2,35 +2,31 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#faf9f6"><title>随手存 · 视频下载</title>
+  <meta name="theme-color" content="#f6f8f7"><title>随手存 · 视频下载</title>
   <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script>
 </head>
 <body>
 <div class="shell">
-  <header><a class="brand" href="/" aria-label="回到博客首页"><span class="logo">↓</span>随手存<span class="badge">私人下载站</span></a><span class="head-right"><a class="files-link" href="/files/">文件小站</a><span class="connection"><i></i>服务在线</span></span></header>
+  <header class="standalone-header"><a class="brand" href="/" aria-label="回到个人空间"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg></span>随手存<span class="badge">视频工具</span></a><span class="head-right"><a class="files-link" href="/files/">文件小站</a><span class="connection" data-state="pending" role="status"><i aria-hidden="true"></i><span class="connection-label">等待验证</span></span></span></header>
   <main>
-    <section class="intro"><p class="kicker">Suishoucun · Video Saver</p><h1>视频下载</h1><p class="description">粘贴抖音、TikTok 等平台的链接或分享文案，保存喜欢的视频。</p></section>
-    <section id="login-panel" class="panel">
-      <div class="panel-top"><div><h2>输入访问密码</h2><p>验证后即可开始使用</p></div></div>
-      <form id="login-form"><label for="password">访问密码</label><div class="password-wrap"><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="128" placeholder="请输入访问密码"><button type="button" id="toggle-password" class="quiet">显示</button></div><button class="primary" id="login-button" type="submit">安全连接 <span>→</span></button></form>
-      <p class="hint">请使用服务提供者分享的密码。</p>
+    <section class="intro"><h1>把喜欢的视频，随手存下来。</h1><p class="description">粘贴抖音、TikTok 等平台的链接或分享文案，保存到你的设备。</p></section>
+    <section id="login-panel" class="login-layout" aria-labelledby="login-title">
+      <div class="welcome-panel"><span class="welcome-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="13" y="7" width="38" height="50" rx="7"/><path d="m27 21 14 9-14 9V21Z"/><path d="M25 49h14"/></svg></span><div><p class="welcome-caption">你的私人视频工具</p><h2>一条链接，<br>留住一个喜欢的瞬间。</h2><p>复制分享文案，粘贴并解析，<br>再由当前设备接收视频。</p></div><span class="welcome-detail">手机和电脑都可以使用</span></div>
+      <div class="panel login-card"><div class="panel-top"><span class="lock-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg></span><div><h2 id="login-title">输入访问密码</h2><p>验证后即可开始使用</p></div></div><form id="login-form"><label for="password">访问密码</label><div class="password-wrap"><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="128" placeholder="请输入访问密码"><button type="button" id="toggle-password" class="quiet" aria-controls="password" aria-label="显示访问密码">显示</button></div><button class="primary" id="login-button" type="submit">进入视频工具</button></form><p class="hint">请使用服务提供者分享的密码。验证仅用于访问此私人工具。</p></div>
     </section>
     <div id="workspace" hidden>
-      <section class="panel"><div class="panel-top"><div><h2>视频链接</h2><p>支持完整分享文案，也可以一次粘贴多条链接</p></div></div>
-        <form id="download-form"><label class="sr-only" for="share-text">视频链接或分享文案</label><textarea id="share-text" rows="4" maxlength="12000" placeholder="在 App 里点击「分享 → 复制链接」，&#10;然后粘贴到这里…" required></textarea><div class="form-bottom"><span>支持抖音 / TikTok 等平台，可一次多条</span><button type="button" class="quiet" id="clear-button">清空</button></div><button class="primary" id="submit-button" type="submit">解析链接 <span>→</span></button></form>
-      </section>
-      <section class="library"><div class="library-heading"><div><span class="eyebrow">DIRECT FROM THE SOURCE</span><h2>解析记录 <span id="job-count">0</span></h2></div><span><button id="log-button" class="text-button">日志</button><button id="refresh-button" class="text-button">刷新</button></span></div><div id="jobs"><div class="empty"><span>↓</span><h3>把喜欢的视频存到你的设备</h3><p>解析完成后直接下载，视频流量不经过服务端</p></div></div></section>
-      <div class="session-row"><span>已连接私人下载站</span><button id="logout-button" class="text-button">退出登录</button></div>
+      <div class="compose-layout"><section class="panel compose-panel"><div class="panel-top"><span class="lock-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2m2 4a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2"/></svg></span><div><h2>视频链接</h2><p>支持完整分享文案，也可以一次粘贴多条链接</p></div></div>
+        <form id="download-form"><label class="sr-only" for="share-text">视频链接或分享文案</label><textarea id="share-text" rows="5" maxlength="12000" placeholder="在 App 里点击「分享 → 复制链接」，&#10;然后粘贴到这里…" required></textarea><div class="form-bottom"><span>抖音 / TikTok 等平台 · 支持多条链接</span><button type="button" class="quiet" id="clear-button">清空</button></div><button class="primary" id="submit-button" type="submit">解析链接</button></form>
+      </section><aside class="tips-panel"><span class="tips-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg></span><h2>视频，存到你手里。</h2><p>解析完成后，点击「直接下载」。视频由当前设备连接源站接收。</p><ul><li>链接过期时，可以重新解析。</li><li>直连受限时，试试「源站打开」。</li><li>请保存你有权使用的内容。</li></ul></aside></div>
+      <section class="library" aria-labelledby="library-title"><div class="library-heading"><div><h2 id="library-title">解析记录 <span id="job-count">0</span></h2><p>准备好后，预览一下再保存。</p></div><span class="library-actions"><button id="log-button" class="text-button">运行日志</button><button id="refresh-button" class="text-button">刷新记录</button></span></div><div id="jobs" aria-live="polite"><div class="empty"><span aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m10 8 6 4-6 4V8Z"/></svg></span><h3>还没有解析记录</h3><p>粘贴链接，开始保存第一条视频。</p></div></div></section>
+      <div class="session-row"><span>当前会话已通过访问验证</span><button id="logout-button" class="text-button">退出登录</button></div>
     </div>
     <div id="notice" role="status" aria-live="polite" hidden></div>
-    <section class="how"><div><span>01</span>复制视频链接</div><b>→</b><div><span>02</span>解析视频地址</div><b>→</b><div><span>03</span>设备直连源站</div></section>
-    <footer>手机与电脑均可使用 · <a href="/">回到博客首页</a></footer>
+    <section class="how" aria-label="使用步骤"><div><span>1</span>复制视频链接</div><div><span>2</span>解析视频地址</div><div><span>3</span>保存到当前设备</div></section>
+    <footer>随手存 · 自己的顺手工具 <a href="/">返回个人空间</a></footer>
   </main>
 </div>
-<dialog id="preview-dialog"><div class="preview-heading"><h2>视频预览</h2><button id="close-preview" class="text-button">关闭 ✕</button></div><video id="preview-video" controls playsinline preload="metadata"></video><p>苹果手机可通过视频菜单或分享菜单保存视频。</p></dialog>
-<dialog id="log-dialog"><div class="preview-heading"><h2>运行日志</h2><button id="close-log" class="text-button">关闭 ✕</button></div><pre id="log-content">暂无日志</pre><p>解析各阶段的记录同时保存在服务数据目录的 resolver.log；此处显示最近 500 条，打开时自动刷新。</p></dialog>
+<dialog id="preview-dialog" aria-labelledby="preview-title"><div class="preview-heading"><h2 id="preview-title">视频预览</h2><button id="close-preview" class="text-button" autofocus>关闭预览</button></div><video id="preview-video" controls playsinline preload="metadata"></video><p>苹果手机可通过视频菜单或分享菜单保存视频。</p></dialog>
+<dialog id="log-dialog" aria-labelledby="log-title"><div class="preview-heading"><h2 id="log-title">运行日志</h2><button id="close-log" class="text-button" autofocus>关闭日志</button></div><pre id="log-content" tabindex="0">暂无日志</pre><p>显示最近的解析记录，打开时自动刷新。</p></dialog>
 </body></html>

@@ -13,6 +13,8 @@ cloudflare-lab/logs/
 cloudflare-lab/cloudflared-src/
 # ===== 通用 =====
 __pycache__/
+.venv/
+test-results/
 *.pyc
 *.log
 .DS_Store

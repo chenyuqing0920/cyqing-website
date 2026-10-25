@@ -39,7 +39,15 @@ class WebTests(unittest.TestCase):
         return {"X-CSRF-Token": response.json["csrf"]}
 
     def test_auth_cookies_and_logout(self):
-        self.assertEqual(self.client.get("/").status_code, 200)
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["X-Frame-Options"], "SAMEORIGIN")
+        policy = response.headers["Content-Security-Policy"]
+        self.assertIn("frame-ancestors 'self'", policy)
+        self.assertIn("script-src 'self'", policy)
+        self.assertIn("style-src 'self'", policy)
+        self.assertIn("form-action 'self'", policy)
+        self.assertNotIn("'unsafe-inline'", policy)
         with self.client.get("/static/app.js") as response:
             self.assertTrue(response.content_type.startswith("text/javascript"))
         self.assertEqual(self.client.get("/api/jobs").status_code, 401)
