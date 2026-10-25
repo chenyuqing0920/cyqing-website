@@ -245,6 +245,60 @@ nav.scrolled{border-bottom-color:var(--line)}
   .pcard{padding:15px}
   footer{padding:30px 18px 44px;gap:8px 18px}
 }
+/* ================= 自加内容：提示词 & 娱乐（2026-10-25） ================= */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 18px}
+.toolbar-note{font-size:12.5px;color:var(--muted)}
+.btn-accent{border:none;background:linear-gradient(120deg,#7c3aed,#db2777);color:#fff;
+  padding:9px 20px;border-radius:999px;cursor:pointer;font-size:14px;font-family:inherit;font-weight:600}
+.btn-accent:hover{filter:brightness(1.12)}
+.btn-ghost{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.05);color:var(--ink);
+  padding:8px 18px;border-radius:999px;cursor:pointer;font-size:13.5px;font-family:inherit}
+.btn-ghost:hover{border-color:#a78bfa;color:#c4b5fd}
+.mini-btn{border:1px solid rgba(255,255,255,.22);background:transparent;color:var(--ink2);
+  padding:4px 12px;border-radius:999px;cursor:pointer;font-size:12.5px;font-family:inherit}
+.mini-btn:hover{border-color:#a78bfa;color:#fff}
+.mini-btn.danger:hover{border-color:#f87171;color:#f87171}
+.prow-btns{display:flex;gap:6px;align-items:center}
+.badge-mine{font-size:11px;font-weight:600;color:#fff;background:linear-gradient(120deg,#7c3aed,#db2777);
+  border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+.form-panel{background:rgba(255,255,255,.045);border:1px solid rgba(167,139,250,.35);border-radius:16px;
+  padding:22px;margin:0 0 22px;display:grid;gap:14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.form-panel label{display:grid;gap:6px;font-size:13.5px;color:var(--ink2)}
+.form-panel input,.form-panel select,.form-panel textarea{
+  background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.18);border-radius:10px;
+  color:var(--ink);padding:10px 13px;font-size:14px;font-family:inherit;width:100%;outline:none}
+.form-panel input:focus,.form-panel select:focus,.form-panel textarea:focus{border-color:#a78bfa}
+.form-panel textarea{resize:vertical;line-height:1.65}
+.form-panel select option{background:#17172a}
+.form-row{display:flex;gap:10px}
+.mini-select,.mini-input{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.22);border-radius:999px;
+  color:var(--ink);padding:8px 14px;font-size:13.5px;font-family:inherit;outline:none}
+.mini-select option{background:#17172a}
+.mini-input{min-width:180px}
+.mini-input::placeholder{color:var(--muted)}
+.stat-line{font-size:14px;color:var(--ink2);margin:0 0 18px}
+.stat-line b{color:var(--ink)}
+.empty-hint{color:var(--muted);font-size:14.5px;line-height:1.8;border:1px dashed rgba(255,255,255,.22);
+  border-radius:14px;padding:26px;text-align:center}
+.watch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.watch-card{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:18px;
+  background:rgba(255,255,255,.045);display:flex;flex-direction:column;gap:8px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.watch-card h3{font-size:17px;margin:0;line-height:1.45}
+.w-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.w-status{flex:none;font-size:12px;font-weight:600;border-radius:999px;padding:3px 11px}
+.w-status.want{background:rgba(37,99,235,.22);color:#93c5fd}
+.w-status.watching{background:rgba(245,158,11,.22);color:#fcd34d}
+.w-status.done{background:rgba(13,148,136,.25);color:#5eead4}
+.w-meta{font-size:13px;color:var(--muted)}
+.w-meta .stars{color:#fbbf24;letter-spacing:.08em}
+.w-note{font-size:14px;line-height:1.7;color:var(--ink2);margin:0;white-space:pre-wrap;word-break:break-word}
+.w-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+.sub{font-size:15px;line-height:1.85;color:var(--ink2);margin:0}
+@media(max-width:640px){
+  .form-panel{padding:17px}
+  .mini-input{flex:1;min-width:0}
+}
 </style>
 </head>
 <body>
@@ -254,6 +308,7 @@ nav.scrolled{border-bottom-color:var(--line)}
     <a class="brand" href="#/">陈玉庆<span class="dot">.</span><span class="en">Chen Yuqing</span></a>
     <div class="nav-links">
       <a href="#/collection">收藏</a>
+      <a href="#/entertainment">娱乐</a>
       <a href="#/" data-nav="tools">工具</a>
     </div>
   </div>
@@ -273,10 +328,15 @@ nav.scrolled{border-bottom-color:var(--line)}
   </header>
 
   <section id="collect" style="border-bottom:none;padding-bottom:8px">
-    <div class="hub-grid" style="grid-template-columns:1fr">
+    <div class="hub-grid">
       <a class="hub-card reveal" href="#/collection">
         <span class="hub-ic g2">★</span>
         <span class="hub-tx"><h3>我的收藏</h3><p id="fav-desc">提示词与好网站，慢慢攒</p></span>
+        <span class="hub-go">→</span>
+      </a>
+      <a class="hub-card reveal" href="#/entertainment">
+        <span class="hub-ic g1">▶</span>
+        <span class="hub-tx"><h3>娱乐</h3><p id="watch-desc">看过的动漫和电影，想看的也先囤着</p></span>
         <span class="hub-go">→</span>
       </a>
     </div>
@@ -314,10 +374,91 @@ nav.scrolled{border-bottom-color:var(--line)}
   </section>
   <section>
     <div class="sec-head"><h2>提示词库</h2><span class="en">Prompt Library</span><span class="rule"></span></div>
-    <p class="sub" style="margin-bottom:14px">平时收集的好用提示词，按场景分类，点复制就能拿去用。内容选自 GitHub 等平台的开源合集，来源标注在每张卡片上。</p>
+    <p class="sub" style="margin-bottom:14px">平时收集的好用提示词，按场景分类，点复制就能拿去用。内容选自 GitHub 等平台的开源合集，来源标注在每张卡片上。自己加的会打上「我的」标记，可以随时编辑删除。</p>
     <div class="chips" id="prompt-chips"></div>
+    <div class="toolbar">
+      <button class="btn-accent" id="prompt-add-btn">＋ 添加提示词</button>
+      <button class="btn-ghost" id="prompt-export-btn">导出我的提示词</button>
+      <button class="btn-ghost" id="prompt-import-btn">导入</button>
+      <input type="file" id="prompt-import-file" accept=".json,application/json" hidden>
+      <span class="toolbar-note">自己加的只存在当前浏览器里，换设备前先导出备份。</span>
+    </div>
+    <form class="form-panel" id="prompt-form" hidden>
+      <input type="hidden" id="pf-id">
+      <label>标题<input id="pf-title" required maxlength="60" placeholder="比如：小红书爆款标题助手"></label>
+      <label>分类
+        <select id="pf-cat"></select>
+        <input id="pf-cat-new" placeholder="新分类名称，比如：绘画" hidden>
+      </label>
+      <label>一句话介绍<input id="pf-desc" maxlength="120" placeholder="这条提示词是干嘛的（可空）"></label>
+      <label>提示词正文<textarea id="pf-text" rows="5" required placeholder="粘贴提示词全文"></textarea></label>
+      <label>来源（可空）<input id="pf-src" maxlength="60" placeholder="比如：自己写的 / 某博主分享"></label>
+      <div class="form-row">
+        <button class="btn-accent" type="submit">保存</button>
+        <button class="btn-ghost" type="button" id="prompt-form-cancel">取消</button>
+      </div>
+    </form>
     <div class="prompt-grid" id="prompt-grid"></div>
     <p class="psrc" style="margin-top:18px">素材来源（均为开源合集，感谢原作者）：<a href="https://github.com/PlexPt/awesome-chatgpt-prompts-zh" target="_blank" rel="noopener">PlexPt 中文调教指南</a> · <a href="https://github.com/f/awesome-chatgpt-prompts" target="_blank" rel="noopener">f/awesome-chatgpt-prompts（CC0）</a> · <a href="https://github.com/LichAmnesia/awesome-ad-video-prompts" target="_blank" rel="noopener">LichAmnesia 视频广告提示词（CC BY 4.0）</a></p>
+  </section>
+</main>
+<footer>
+  <span class="fbrand">陈玉庆<span style="color:var(--accent)">.</span></span>
+  <span>© 2026 Chen Yuqing</span>
+  <span class="sp"></span>
+  <span><a href="#/" style="color:inherit">← 返回首页</a></span>
+</footer>
+</div>
+
+<div id="entertainment-view" hidden>
+<main>
+  <section>
+    <div class="sec-head"><h2>娱乐</h2><span class="en">Watchlist</span><span class="rule"></span></div>
+    <p class="sub" style="margin-bottom:14px">看过的动漫、电影、电视剧都记在这里：想看的先囤着，看完打个分，顺便写两句感受。</p>
+    <p class="stat-line" id="watch-stats"></p>
+    <div class="toolbar">
+      <button class="btn-accent" id="watch-add-btn">＋ 添加一部</button>
+      <button class="btn-ghost" id="watch-export-btn">导出记录</button>
+      <button class="btn-ghost" id="watch-import-btn">导入</button>
+      <input type="file" id="watch-import-file" accept=".json,application/json" hidden>
+      <select class="mini-select" id="watch-type-filter">
+        <option value="全部">全部类型</option>
+        <option>动漫</option><option>电影</option><option>电视剧</option><option>综艺</option><option>其他</option>
+      </select>
+      <input class="mini-input" id="watch-search" placeholder="搜索标题或备注…">
+      <span class="toolbar-note">记录只存在当前浏览器，换设备前先导出备份。</span>
+    </div>
+    <div class="chips" id="watch-chips"></div>
+    <form class="form-panel" id="watch-form" hidden>
+      <input type="hidden" id="wf-id">
+      <label>名称<input id="wf-title" required maxlength="80" placeholder="比如：葬送的芙莉莲 / 星际穿越"></label>
+      <label>类型
+        <select id="wf-type">
+          <option>动漫</option><option>电影</option><option>电视剧</option><option>综艺</option><option>其他</option>
+        </select>
+      </label>
+      <label>状态
+        <select id="wf-status">
+          <option>想看</option><option>在看</option><option>已看</option>
+        </select>
+      </label>
+      <label>评分
+        <select id="wf-score">
+          <option value="0">还没打分</option>
+          <option value="5">★★★★★ 5 星</option>
+          <option value="4">★★★★☆ 4 星</option>
+          <option value="3">★★★☆☆ 3 星</option>
+          <option value="2">★★☆☆☆ 2 星</option>
+          <option value="1">★☆☆☆☆ 1 星</option>
+        </select>
+      </label>
+      <label>备注<textarea id="wf-note" rows="3" placeholder="看完的感受、看到第几集、推荐给谁……（可空）"></textarea></label>
+      <div class="form-row">
+        <button class="btn-accent" type="submit">保存</button>
+        <button class="btn-ghost" type="button" id="watch-form-cancel">取消</button>
+      </div>
+    </form>
+    <div class="watch-grid" id="watch-grid"></div>
   </section>
 </main>
 <footer>
@@ -331,6 +472,33 @@ nav.scrolled{border-bottom-color:var(--line)}
 <script>
 
 const $ = (s) => document.querySelector(s);
+
+/* ---------- 本地自加数据：存在浏览器 localStorage，不经过服务器 ---------- */
+function loadJSON(key, fallback){
+  try { const v = JSON.parse(localStorage.getItem(key) || "null"); return v ?? fallback; }
+  catch (e) { return fallback; }
+}
+function saveJSON(key, val){ try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+const esc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const todayStr = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+function downloadJSON(filename, data){
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function importJSONFile(file, validate, onOk){
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const arr = JSON.parse(r.result);
+      if (!Array.isArray(arr)) throw new Error("not array");
+      onOk(arr.filter(validate).map(x => ({...x, id: x.id || uid()})));
+    } catch (e) { alert("导入失败：这个文件不是有效的记录 JSON"); }
+  };
+  r.readAsText(file);
+}
 
 const PROMPTS = [
   
@@ -367,25 +535,33 @@ const PROMPTS = [
 
 ];
 
+let myPrompts = loadJSON("cyqing_my_prompts", []);
 let curCat = "全部";
+function allPrompts(){
+  return PROMPTS.map(p => ({...p, mine: false})).concat(myPrompts.map(p => ({...p, mine: true})));
+}
 function renderPrompts(){
-  const cats = ["全部", ...new Set(PROMPTS.map(p => p.cat))];
+  const all = allPrompts();
+  const cats = ["全部", "我的", ...new Set(all.map(p => p.cat))];
   $("#prompt-chips").innerHTML = cats.map(c =>
-    `<button class="chip${c === curCat ? " on" : ""}" data-cat="${c}">${c}</button>`).join("");
+    `<button class="chip${c === curCat ? " on" : ""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("");
   document.querySelectorAll("#prompt-chips .chip").forEach(b =>
     b.addEventListener("click", () => { curCat = b.dataset.cat; renderPrompts(); }));
-  const esc = s => s.replace(/</g, "&lt;");
-  $("#prompt-grid").innerHTML = PROMPTS.filter(p => curCat === "全部" || p.cat === curCat).map((p, i) => `
+  const list = all.filter(p =>
+    curCat === "全部" ? true : curCat === "我的" ? p.mine : p.cat === curCat);
+  $("#prompt-grid").innerHTML = list.length ? list.map(p => `
     <div class="pcard">
-      <h3>${p.title}</h3>
-      <p class="pdesc">${p.desc}</p>
+      <h3>${esc(p.title)}${p.mine ? '<span class="badge-mine">我的</span>' : ""}</h3>
+      <p class="pdesc">${esc(p.desc || "")}</p>
       <pre>${esc(p.text)}</pre>
-      <div class="prow"><span class="psrc">来源：${p.src}</span>
-      <button class="copy-btn" data-copy="${PROMPTS.indexOf(p)}">复制</button></div>
-    </div>`).join("");
+      <div class="prow"><span class="psrc">来源：${esc(p.src || "自己添加")}</span>
+      <span class="prow-btns"><button class="copy-btn" data-copy="${all.indexOf(p)}">复制</button>${p.mine
+        ? `<button class="mini-btn" data-edit="${p.id}">编辑</button><button class="mini-btn danger" data-del="${p.id}">删除</button>` : ""}</span></div>
+    </div>`).join("")
+    : `<p class="empty-hint">这个分类下还没有提示词，点「添加提示词」加一条吧。</p>`;
   document.querySelectorAll(".copy-btn").forEach(b =>
     b.addEventListener("click", async () => {
-      const t = PROMPTS[+b.dataset.copy].text;
+      const t = all[+b.dataset.copy].text;
       try { await navigator.clipboard.writeText(t); }
       catch (e) {
         const ta = document.createElement("textarea");
@@ -394,6 +570,85 @@ function renderPrompts(){
       }
       b.textContent = "已复制 ✓"; setTimeout(() => b.textContent = "复制", 1500);
     }));
+  document.querySelectorAll("[data-edit]").forEach(b =>
+    b.addEventListener("click", () => openPromptForm(myPrompts.find(p => p.id === b.dataset.edit))));
+  document.querySelectorAll("[data-del]").forEach(b =>
+    b.addEventListener("click", () => {
+      const p = myPrompts.find(x => x.id === b.dataset.del);
+      if (p && confirm(`确定删除「${p.title}」吗？`)){
+        myPrompts = myPrompts.filter(x => x.id !== p.id);
+        saveJSON("cyqing_my_prompts", myPrompts);
+        renderPrompts(); fillFav();
+      }
+    }));
+}
+function fillPromptCatSelect(){
+  const sel = $("#pf-cat");
+  const cats = [...new Set(allPrompts().map(p => p.cat))];
+  sel.innerHTML = cats.map(c => `<option>${esc(c)}</option>`).join("") + `<option value="__new">＋ 新分类…</option>`;
+}
+function openPromptForm(p){
+  fillPromptCatSelect();
+  const f = $("#prompt-form");
+  if (p){
+    $("#pf-id").value = p.id;
+    $("#pf-title").value = p.title;
+    $("#pf-cat").value = p.cat;
+    $("#pf-desc").value = p.desc || "";
+    $("#pf-text").value = p.text;
+    $("#pf-src").value = p.src || "";
+  } else {
+    $("#pf-id").value = "";
+    $("#prompt-form").reset();
+    $("#pf-cat").value = [...new Set(allPrompts().map(x => x.cat))][0] || "";
+  }
+  $("#pf-cat-new").hidden = $("#pf-cat").value !== "__new";
+  f.hidden = false;
+  f.scrollIntoView({behavior: "smooth", block: "center"});
+  $("#pf-title").focus();
+}
+function bindPromptEditor(){
+  $("#prompt-add-btn").addEventListener("click", () => openPromptForm(null));
+  $("#prompt-form-cancel").addEventListener("click", () => { $("#prompt-form").hidden = true; });
+  $("#pf-cat").addEventListener("change", e => {
+    $("#pf-cat-new").hidden = e.target.value !== "__new";
+    if (e.target.value === "__new") $("#pf-cat-new").focus();
+  });
+  $("#prompt-form").addEventListener("submit", e => {
+    e.preventDefault();
+    const cat = $("#pf-cat").value === "__new"
+      ? $("#pf-cat-new").value.trim() : $("#pf-cat").value;
+    if (!cat){ alert("请选一个分类，或输入新分类名称"); return; }
+    const rec = {
+      id: $("#pf-id").value || uid(),
+      cat,
+      title: $("#pf-title").value.trim(),
+      desc: $("#pf-desc").value.trim(),
+      text: $("#pf-text").value.trim(),
+      src: $("#pf-src").value.trim(),
+    };
+    if (!rec.title || !rec.text){ alert("标题和提示词正文不能为空"); return; }
+    const i = myPrompts.findIndex(x => x.id === rec.id);
+    if (i >= 0) myPrompts[i] = rec; else myPrompts.unshift(rec);
+    saveJSON("cyqing_my_prompts", myPrompts);
+    $("#prompt-form").hidden = true;
+    renderPrompts(); fillFav();
+  });
+  $("#prompt-export-btn").addEventListener("click", () => {
+    if (!myPrompts.length){ alert("你还没有添加过提示词，没什么可导出的"); return; }
+    downloadJSON("my-prompts.json", myPrompts);
+  });
+  $("#prompt-import-btn").addEventListener("click", () => $("#prompt-import-file").click());
+  $("#prompt-import-file").addEventListener("change", e => {
+    const f = e.target.files[0];
+    if (f) importJSONFile(f, x => x && x.title && x.text, arr => {
+      myPrompts = arr.concat(myPrompts.filter(x => !arr.some(a => a.id === x.id)));
+      saveJSON("cyqing_my_prompts", myPrompts);
+      renderPrompts(); fillFav();
+      alert(`导入成功，新增 ${arr.length} 条`);
+    });
+    e.target.value = "";
+  });
 }
 
 const SITES = [
@@ -416,23 +671,146 @@ function renderSites(){
     </a>`).join("");
 }
 
+/* ---------- 娱乐：想看 / 在看 / 已看 ---------- */
+const WATCH_TYPES = ["动漫", "电影", "电视剧", "综艺", "其他"];
+const WATCH_STATUS = ["想看", "在看", "已看"];
+let watchList = loadJSON("cyqing_watchlist", []);
+let watchFilter = "全部";
+let watchTypeF = "全部";
+let watchQuery = "";
+function stars(n){
+  n = +n || 0;
+  return n ? "★".repeat(n) + "☆".repeat(5 - n) : "还没打分";
+}
+function renderWatch(){
+  const n = s => watchList.filter(w => w.status === s).length;
+  $("#watch-stats").innerHTML =
+    `共 <b>${watchList.length}</b> 部 · 已看 <b>${n("已看")}</b> · 在看 <b>${n("在看")}</b> · 想看 <b>${n("想看")}</b>`;
+  $("#watch-chips").innerHTML = ["全部", ...WATCH_STATUS].map(s =>
+    `<button class="chip${s === watchFilter ? " on" : ""}" data-st="${s}">${s}</button>`).join("");
+  document.querySelectorAll("#watch-chips .chip").forEach(b =>
+    b.addEventListener("click", () => { watchFilter = b.dataset.st; renderWatch(); }));
+  const q = watchQuery.trim();
+  const list = watchList.filter(w =>
+    (watchFilter === "全部" || w.status === watchFilter) &&
+    (watchTypeF === "全部" || w.type === watchTypeF) &&
+    (!q || w.title.includes(q) || (w.note || "").includes(q)));
+  const stCls = s => s === "已看" ? "done" : s === "在看" ? "watching" : "want";
+  const nextSt = s => s === "想看" ? "在看" : s === "在看" ? "已看" : null;
+  const nextLabel = s => s === "想看" ? "开始看" : s === "在看" ? "看完了" : "";
+  $("#watch-grid").innerHTML = list.length ? list.map(w => `
+    <div class="watch-card">
+      <div class="w-top"><h3>${esc(w.title)}</h3><span class="w-status ${stCls(w.status)}">${w.status}</span></div>
+      <div class="w-meta">${esc(w.type)} · <span class="stars">${stars(w.score)}</span> · ${esc(w.date || "")}加入</div>
+      ${w.note ? `<p class="w-note">${esc(w.note)}</p>` : ""}
+      <div class="w-actions">${nextSt(w.status)
+        ? `<button class="mini-btn" data-next="${w.id}">${nextLabel(w.status)} →</button>` : ""}
+        <button class="mini-btn" data-wedit="${w.id}">编辑</button>
+        <button class="mini-btn danger" data-wdel="${w.id}">删除</button></div>
+    </div>`).join("")
+    : `<p class="empty-hint">这里还是空的，点「添加一部」把想看的先囤起来吧。</p>`;
+  document.querySelectorAll("[data-next]").forEach(b =>
+    b.addEventListener("click", () => {
+      const w = watchList.find(x => x.id === b.dataset.next);
+      if (w){ w.status = nextSt(w.status); saveJSON("cyqing_watchlist", watchList); renderWatch(); fillFav(); }
+    }));
+  document.querySelectorAll("[data-wedit]").forEach(b =>
+    b.addEventListener("click", () => openWatchForm(watchList.find(x => x.id === b.dataset.wedit))));
+  document.querySelectorAll("[data-wdel]").forEach(b =>
+    b.addEventListener("click", () => {
+      const w = watchList.find(x => x.id === b.dataset.wdel);
+      if (w && confirm(`确定删除「${w.title}」的记录吗？`)){
+        watchList = watchList.filter(x => x.id !== w.id);
+        saveJSON("cyqing_watchlist", watchList);
+        renderWatch(); fillFav();
+      }
+    }));
+}
+function openWatchForm(w){
+  const f = $("#watch-form");
+  if (w){
+    $("#wf-id").value = w.id;
+    $("#wf-title").value = w.title;
+    $("#wf-type").value = w.type;
+    $("#wf-status").value = w.status;
+    $("#wf-score").value = String(w.score || 0);
+    $("#wf-note").value = w.note || "";
+  } else {
+    $("#wf-id").value = "";
+    $("#watch-form").reset();
+  }
+  f.hidden = false;
+  f.scrollIntoView({behavior: "smooth", block: "center"});
+  $("#wf-title").focus();
+}
+function bindWatchEditor(){
+  $("#watch-add-btn").addEventListener("click", () => openWatchForm(null));
+  $("#watch-form-cancel").addEventListener("click", () => { $("#watch-form").hidden = true; });
+  $("#watch-form").addEventListener("submit", e => {
+    e.preventDefault();
+    const rec = {
+      id: $("#wf-id").value || uid(),
+      title: $("#wf-title").value.trim(),
+      type: $("#wf-type").value,
+      status: $("#wf-status").value,
+      score: +$("#wf-score").value || 0,
+      note: $("#wf-note").value.trim(),
+      date: ($("#wf-id").value && (watchList.find(x => x.id === $("#wf-id").value) || {}).date) || todayStr(),
+    };
+    if (!rec.title){ alert("名称不能为空"); return; }
+    const i = watchList.findIndex(x => x.id === rec.id);
+    if (i >= 0) watchList[i] = rec; else watchList.unshift(rec);
+    saveJSON("cyqing_watchlist", watchList);
+    $("#watch-form").hidden = true;
+    renderWatch(); fillFav();
+  });
+  $("#watch-type-filter").addEventListener("change", e => { watchTypeF = e.target.value; renderWatch(); });
+  $("#watch-search").addEventListener("input", e => { watchQuery = e.target.value; renderWatch(); });
+  $("#watch-export-btn").addEventListener("click", () => {
+    if (!watchList.length){ alert("还没有任何记录，没什么可导出的"); return; }
+    downloadJSON("my-watchlist.json", watchList);
+  });
+  $("#watch-import-btn").addEventListener("click", () => $("#watch-import-file").click());
+  $("#watch-import-file").addEventListener("change", e => {
+    const f = e.target.files[0];
+    if (f) importJSONFile(f, x => x && x.title, arr => {
+      watchList = arr.concat(watchList.filter(x => !arr.some(a => a.id === x.id)));
+      saveJSON("cyqing_watchlist", watchList);
+      renderWatch(); fillFav();
+      alert(`导入成功，新增 ${arr.length} 部`);
+    });
+    e.target.value = "";
+  });
+}
+
 function fillFav(){
   const d = $("#fav-desc");
-  if (d) d.textContent = `提示词 ${PROMPTS.length} 条 · 网站收藏 ${SITES.length} 个，慢慢攒`;
+  if (d) d.textContent = `提示词 ${PROMPTS.length + myPrompts.length} 条 · 网站收藏 ${SITES.length} 个，慢慢攒`;
+  const w = $("#watch-desc");
+  if (w){
+    if (!watchList.length) return;
+    const n = s => watchList.filter(x => x.status === s).length;
+    w.textContent = `已看 ${n("已看")} · 在看 ${n("在看")} · 想看 ${n("想看")}`;
+  }
 }
 
 function route(){
   const hash = location.hash || "#/";
+  const show = id => ["home-view", "collection-view", "entertainment-view"]
+    .forEach(v => { $(`#${v}`).hidden = v !== id; });
   if (hash === "#/collection" || hash === "#/prompts"){
-    $("#home-view").hidden = true;
-    $("#collection-view").hidden = false;
+    show("collection-view");
     document.title = "我的收藏 · 陈玉庆";
     renderSites();
     renderPrompts();
     observeReveals();
+  } else if (hash === "#/entertainment"){
+    show("entertainment-view");
+    document.title = "娱乐 · 陈玉庆";
+    renderWatch();
+    observeReveals();
   } else {
-    $("#collection-view").hidden = true;
-    $("#home-view").hidden = false;
+    show("home-view");
     document.title = "陈玉庆 · 个人小站";
     fillFav();
     observeReveals();
@@ -468,6 +846,8 @@ document.querySelectorAll("[data-nav]").forEach(a => {
 });
 
 window.addEventListener("hashchange", route);
+bindPromptEditor();
+bindWatchEditor();
 route();
 </script>
 </body>
