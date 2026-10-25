@@ -351,23 +351,18 @@ def create_app(jobs, password, resources=None):
         return error if error else jsonify(data)
 
     def relay_headers(info):
-        # Only User-Agent and Referer are taken from the parse-time headers,
-        # plus cookies stored separately on the job. Anything else in
-        # info.headers (including a Cookie entry) is never forwarded.
+        # Only User-Agent and Referer are taken from the parse-time headers.
+        # Parse-time cookies are deliberately NOT forwarded: verified
+        # 2026-10-26, sending the job's cookie jar to the video origin makes
+        # the upstream stall until the read timeout, while the same URL
+        # without cookies returns 200 immediately. Anything else in
+        # info.headers (including a Cookie entry) is never forwarded either.
         headers = {}
         source = info.headers or {}
         if source.get("User-Agent"):
             headers["User-Agent"] = source["User-Agent"]
         if source.get("Referer"):
             headers["Referer"] = source["Referer"]
-        cookies = []
-        for cookie in info.cookies or []:
-            try:
-                cookies.append(f"{cookie.name}={cookie.value}")
-            except Exception:
-                continue
-        if cookies:
-            headers["Cookie"] = "; ".join(cookies)
         return headers
 
     @app.get("/files/<key>/relay")
@@ -376,7 +371,8 @@ def create_app(jobs, password, resources=None):
         # Streaming relay (authorized 2026-10-26, replacing the no-relay rule
         # for downloads): fetch from a resolved Douyin origin and forward
         # bytes as they arrive. Nothing is written to disk, and no URL other
-        # than this job's resolved HTTPS addresses is ever fetched.
+        # than this job's resolved HTTPS addresses is ever fetched. Upstream
+        # requests carry only the parse-time User-Agent/Referer, no cookies.
         try:
             video = jobs.video(key)
         except LinkExpired as exc:
@@ -389,24 +385,50 @@ def create_app(jobs, password, resources=None):
             return jsonify(error="源站没有返回可用的 HTTPS 地址，请重新解析"), 422
         headers = relay_headers(info)
         filename = f"{safe_name(info.title)}_{info.id}.mp4"
+        # The origin is flaky from this egress (verified 2026-10-26: same URL
+        # returns 200, 403, a disconnect or a stalled read on different
+        # attempts), so each attempt gets a short first-byte budget and the
+        # whole attempt loop gets an overall deadline: fail fast with a
+        # clear 502 instead of leaving the visitor hanging for minutes.
+        client_range = request.headers.get("Range")
+        if client_range:
+            headers["Range"] = client_range
+        deadline = time.monotonic() + 45
+        attempts = []
+        # A fresh opener per relay request, mirroring the Resolver's own
+        # opener: the global urlopen opener demonstrably stalls from this
+        # service process (2026-10-26: every in-service urlopen attempt
+        # timed out while the same URL fetched in 1-3s from a script with
+        # the same proxy env), while Resolver-opener fetches from the
+        # service succeed. The empty cookie jar also keeps the no-cookie
+        # rule (parse-time cookies stall the origin).
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
         for url in urls:
+            if time.monotonic() > deadline:
+                break
             upstream = None
+            attempt_start = time.monotonic()
+            host = urlsplit(url).hostname or "?"
             try:
-                upstream = urllib.request.urlopen(
-                    urllib.request.Request(url, headers=headers), timeout=30)
+                upstream = opener.open(
+                    urllib.request.Request(url, headers=headers), timeout=10)
                 content_type = (upstream.headers.get("Content-Type") or "").lower()
-                if upstream.status != 200 or ("video/" not in content_type
-                                             and "octet-stream" not in content_type):
+                if upstream.status not in (200, 206) or ("video/" not in content_type
+                                                         and "octet-stream" not in content_type):
+                    attempts.append(f"{host}:http-{upstream.status}")
                     upstream.close()
                     continue
-            except Exception:
+            except Exception as exc:
+                attempts.append(f"{host}:{type(exc).__name__}({str(exc)[:60]})")
                 if upstream is not None:
                     try:
                         upstream.close()
                     except Exception:
                         pass
                 continue
+            jobs.emit(f"中转：{host} 成功，首字节 {time.monotonic() - attempt_start:.1f}s")
             length = upstream.headers.get("Content-Length")
+            content_range = upstream.headers.get("Content-Range")
 
             def generate(upstream=upstream):
                 try:
@@ -418,12 +440,17 @@ def create_app(jobs, password, resources=None):
                 finally:
                     upstream.close()
 
-            response = Response(stream_with_context(generate()), mimetype="video/mp4")
+            response = Response(stream_with_context(generate()), mimetype="video/mp4",
+                                status=upstream.status)
             response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+            response.headers["Accept-Ranges"] = "bytes"
             if length:
                 response.headers["Content-Length"] = length
+            if content_range:
+                response.headers["Content-Range"] = content_range
             return response
-        return jsonify(error="源站拒绝中转或地址已过期，请重新解析"), 502
+        jobs.emit(f"中转失败：{len(attempts)} 次尝试（{'；'.join(attempts[:8])}）")
+        return jsonify(error="源站响应不稳定，未能在时限内开始传输，请重新解析或稍后重试"), 502
 
     @app.get("/files/<key>")
     @protect

@@ -21,6 +21,14 @@ class FakeResolver:
         return Video("123", "手机测试", [self.url], {"Cookie": "server-secret"})
 
 
+class FakeOpener:
+    def __init__(self, fn):
+        self.fn = fn
+
+    def open(self, request, timeout=None):
+        return self.fn(request, timeout=timeout)
+
+
 class WebTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -137,7 +145,7 @@ class WebTests(unittest.TestCase):
             captured["headers"] = dict(request.header_items())
             return FakeUpstream()
 
-        with patch("web_server.urllib.request.urlopen", side_effect=fake_urlopen):
+        with patch("web_server.urllib.request.build_opener", return_value=FakeOpener(fake_urlopen)):
             with self.client.get(f"/files/{key}/relay") as response:
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.content_type, "video/mp4")
@@ -151,9 +159,52 @@ class WebTests(unittest.TestCase):
         def refused(request, timeout=None):
             raise HTTPError(request.full_url, 403, "Forbidden", {}, None)
 
-        with patch("web_server.urllib.request.urlopen", side_effect=refused):
+        with patch("web_server.urllib.request.build_opener", return_value=FakeOpener(refused)):
             response = self.client.get(f"/files/{key}/relay")
             self.assertEqual(response.status_code, 502)
+
+    def test_relay_forwards_range_for_resume(self):
+        headers = self.login()
+        response = self.client.post("/api/jobs", json={"text": "https://www.douyin.com/video/123"}, headers=headers)
+        key = response.json["ids"][0]
+        for _ in range(60):
+            if self.jobs.video(key):
+                break
+            time.sleep(.02)
+        body = b"0123456789" * 100
+
+        class RangeUpstream:
+            status = 206
+            headers = {"Content-Type": "video/mp4",
+                       "Content-Length": "400",
+                       "Content-Range": "bytes 100-499/1000"}
+
+            def __init__(self):
+                self.pos = 100
+
+            def read(self, n=-1):
+                if self.pos >= 500:
+                    return b""
+                chunk = body[self.pos:500]
+                self.pos = 500
+                return chunk
+
+            def close(self):
+                pass
+
+        captured = {}
+
+        def fake_urlopen(request, timeout=None):
+            captured["range"] = request.get_header("Range")
+            return RangeUpstream()
+
+        with patch("web_server.urllib.request.build_opener", return_value=FakeOpener(fake_urlopen)):
+            with self.client.get(f"/files/{key}/relay", headers={"Range": "bytes=100-499"}) as response:
+                self.assertEqual(response.status_code, 206)
+                self.assertEqual(response.headers["Content-Range"], "bytes 100-499/1000")
+                self.assertEqual(response.headers["Accept-Ranges"], "bytes")
+                self.assertEqual(len(response.data), 400)
+        self.assertEqual(captured["range"], "bytes=100-499")
 
     def test_rate_limit_and_secure_cookie(self):
         for _ in range(8):
