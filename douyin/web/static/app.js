@@ -7,20 +7,28 @@ const APP_PREFIX = window.location.pathname.replace(/\/+$/, '');
 let csrf = '', timer, lastSnapshot = '', noticeTimer;
 const transfers = new Map();
 const $ = id => document.getElementById(id);
-// Keep frontend-only updates compatible with templates cached by a running EXE.
+// A same-origin portal embeds this tool while keeping its own navigation visible.
+// External scripts remain compatible with the strict script-src 'self' policy.
+document.body.classList.toggle('embedded',window.self!==window.top);
 document.title='随手存 · 视频下载';
-document.querySelector('meta[name="theme-color"]').setAttribute('content','#faf9f6');
-for(const [selector,text] of [
-  ['.intro h1','视频下载'],['.description','粘贴抖音、TikTok 等平台的链接或分享文案，保存喜欢的视频。'],
-  ['#login-panel h2','输入访问密码'],['#login-panel .panel-top p','验证后即可开始使用'],
-  ['#login-panel .hint','请使用服务提供者分享的密码。'],['#workspace .panel h2','视频链接'],
-  ['#workspace .panel-top p','支持完整分享文案，也可以一次粘贴多条链接'],
-  ['.empty h3','还没有解析记录'],['.empty p','粘贴链接，开始保存第一条视频']
-]){const el=document.querySelector(selector);if(el)el.textContent=text;}
-$('login-button').replaceChildren(document.createTextNode('进入'),node('span','','→'));
-document.querySelector('.connection').lastChild.textContent='服务在线';
+const theme=document.querySelector('meta[name="theme-color"]');
+if(theme)theme.setAttribute('content','#f6f8f7');
+function connection(text,state='pending'){
+  const el=document.querySelector('.connection');if(!el)return;
+  el.dataset.state=state;
+  let label=el.querySelector('.connection-label');
+  if(!label){label=node('span','connection-label');el.replaceChildren(node('i'),label);}
+  label.textContent=text;
+}
+connection('等待验证');
 const states = {queued:'排队中',resolving:'解析中',ready:'可下载',failed:'未完成',cancelled:'已取消'};
-function notify(text) { $('notice').textContent=text; $('notice').hidden=false; clearTimeout(noticeTimer); noticeTimer=setTimeout(()=>$('notice').hidden=true,10000); }
+function notify(text) {
+  if(window.self!==window.top){
+    window.parent.postMessage({type:'cyqing:notice',message:text},window.location.origin);
+    return;
+  }
+  $('notice').textContent=text; $('notice').hidden=false; clearTimeout(noticeTimer); noticeTimer=setTimeout(()=>$('notice').hidden=true,10000);
+}
 async function api(path, options={}) {
   const headers={...(options.body?{'Content-Type':'application/json'}:{}), ...(csrf?{'X-CSRF-Token':csrf}:{}),...options.headers};
   const response=await fetch(path,{...options,headers,cache:'no-store',credentials:'same-origin'});
@@ -28,8 +36,8 @@ async function api(path, options={}) {
   if(!response.ok){if(response.status===401 && path!=='/api/login')showLogin();throw new Error(data.error||'连接失败，请稍后重试');}
   return data;
 }
-function showLogin(){csrf='';clearTimeout(timer);$('login-panel').hidden=false;$('workspace').hidden=true;}
-function showWorkspace(token){csrf=token;$('login-panel').hidden=true;$('workspace').hidden=false;refresh();}
+function showLogin(){csrf='';lastSnapshot='';clearTimeout(timer);clearTimeout(noticeTimer);$('notice').hidden=true;$('login-panel').hidden=false;$('workspace').hidden=true;connection('未登录');}
+function showWorkspace(token){csrf=token;$('login-panel').hidden=true;$('workspace').hidden=false;connection('正在读取记录');refresh();}
 function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;}
 function size(value){return (value/1048576).toFixed(1)+' MB';}
 function transferLabel(key, text){
@@ -71,8 +79,13 @@ async function directDownload(job){
 function render(jobs){
   const snapshot=JSON.stringify(jobs);if(lastSnapshot===snapshot)return;lastSnapshot=snapshot;
   $('job-count').textContent=jobs.length;
-  if(!jobs.length)return;
   $('jobs').replaceChildren();
+  if(!jobs.length){
+    const empty=node('div','empty'),icon=node('span','','↓');
+    icon.setAttribute('aria-hidden','true');
+    empty.append(icon,node('h3','','还没有解析记录'),node('p','','粘贴链接，开始保存第一条视频。'));
+    $('jobs').append(empty);return;
+  }
   for(const job of jobs){
     const card=node('article','job');card.dataset.state=job.state;card.dataset.key=job.id;
     const top=node('div','job-top'), icon=node('span','job-icon',job.state==='ready'?'✓':'↓'), info=node('div','job-info');
@@ -91,9 +104,9 @@ function render(jobs){
     footer.append(actions);card.append(footer);if(secondary.childElementCount)card.append(secondary);$('jobs').append(card);
   }
 }
-async function refresh(){clearTimeout(timer);if(!csrf)return;try{const data=await api('/api/jobs');render(data.jobs);document.querySelector('.connection').lastChild.textContent='服务在线';}catch(e){if(csrf){notify('连接中断，请确认电脑远程版仍在运行。');document.querySelector('.connection').lastChild.textContent='连接中断';}}finally{if(csrf)timer=setTimeout(refresh,2500);}}
+async function refresh(){clearTimeout(timer);if(!csrf)return;try{const data=await api('/api/jobs');render(data.jobs);connection('已连接','online');}catch(e){if(csrf){notify('暂时无法读取记录，请稍后刷新或检查服务。');connection('连接中断','error');}}finally{if(csrf)timer=setTimeout(refresh,2500);}}
 $('login-form').onsubmit=async event=>{event.preventDefault();$('login-button').disabled=true;try{const data=await api('/api/login',{method:'POST',body:JSON.stringify({password:$('password').value})});$('password').value='';showWorkspace(data.csrf);}catch(e){notify(e.message);}finally{$('login-button').disabled=false;}};
-$('toggle-password').onclick=()=>{const hidden=$('password').type==='password';$('password').type=hidden?'text':'password';$('toggle-password').textContent=hidden?'隐藏':'显示';};
+$('toggle-password').onclick=()=>{const hidden=$('password').type==='password';$('password').type=hidden?'text':'password';$('toggle-password').textContent=hidden?'隐藏':'显示';$('toggle-password').setAttribute('aria-label',hidden?'隐藏访问密码':'显示访问密码');};
 $('download-form').onsubmit=async event=>{event.preventDefault();$('submit-button').disabled=true;try{await api('/api/jobs',{method:'POST',body:JSON.stringify({text:$('share-text').value})});$('share-text').value='';notify('正在解析。完成后点击“直接下载”，由你的设备直连视频源站。');await refresh();}catch(e){notify(e.message);}finally{$('submit-button').disabled=false;}};
 $('clear-button').onclick=()=>{$('share-text').value='';$('share-text').focus();};
 $('refresh-button').onclick=refresh;
@@ -105,6 +118,6 @@ $('log-button').onclick=()=>{$('log-dialog').showModal();refreshLogs();clearInte
 $('close-log').onclick=()=>$('log-dialog').close();
 $('log-dialog').addEventListener('close',()=>clearInterval(logTimer));
 $('preview-dialog').addEventListener('close',()=>{$('preview-video').pause();$('preview-video').removeAttribute('src');$('preview-video').load();});
-$('preview-video').addEventListener('error',()=>notify('源站拒绝直连或地址已过期，请重新解析；此模式不会使用电脑转发。'));
+$('preview-video').addEventListener('error',()=>notify('源站拒绝直连或地址已过期，请重新解析；此模式不会使用服务器转发。'));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&csrf)refresh();});
 api('/api/session').then(data=>showWorkspace(data.csrf)).catch(()=>showLogin());
