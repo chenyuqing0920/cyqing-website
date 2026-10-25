@@ -4,8 +4,12 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import queue
+import re
 import secrets
+import select
+import subprocess
 import threading
 import time
 from collections import deque
@@ -13,8 +17,7 @@ from functools import wraps
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, redirect, render_template, request, stream_with_context
-from urllib.parse import urlsplit
-import urllib.request
+from urllib.parse import quote, urlsplit
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from downloader import DATA, Cancelled, DownloadError, Resolver, extract_any_links, safe_name
@@ -33,6 +36,103 @@ def direct_links(info):
         except ValueError:
             continue
     return urls[:16]
+
+
+class CurlRelay:
+    """One upstream fetch via the curl binary, headers on stderr.
+
+    Python's urllib demonstrably stalls from the service process
+    (verified 2026-10-26: same key, same minute, script urllib fetched
+    6/6 URLs in 1-2s while every in-service urllib attempt timed out
+    after 10s; env, opener, headers, proxy family and threading were all
+    ruled out one by one). Curl as a fresh child process does not stall,
+    so the relay fetches through it. Headers go to stderr (via -D) and
+    the body to stdout, so nothing touches disk; the URL is always one
+    of the job's resolved HTTPS addresses, never user input, and is
+    passed as a single argv element (no shell).
+    """
+
+    def __init__(self, url, headers, timeout):
+        cmd = ["curl", "-s", "--http1.1", "-L", "--max-redirs", "5",
+               "--max-time", str(timeout)]
+        for key, value in headers.items():
+            cmd += ["-H", f"{key}: {value}"]
+        cmd += ["-D", "/dev/stderr", "-o", "/dev/stdout", url]
+        self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE)
+        self.status = None
+        self.response_headers = {}
+        self._header_buf = b""
+
+    def read_headers(self, timeout):
+        """Read header blocks from stderr until the origin response.
+
+        A proxied HTTPS fetch yields a CONNECT block first, then the
+        origin block; the origin block is the one that is not a
+        connection-establishment reply.
+        """
+        deadline = time.monotonic() + timeout
+        err = self.proc.stderr
+        fd = err.fileno()
+        while True:
+            while b"\r\n\r\n" in self._header_buf:
+                block, self._header_buf = self._header_buf.split(b"\r\n\r\n", 1)
+                text = block.decode("iso-8859-1")
+                lines = text.split("\r\n")
+                if not lines or not lines[0].startswith("HTTP/"):
+                    continue
+                try:
+                    self.status = int(lines[0].split()[1])
+                except (IndexError, ValueError):
+                    continue
+                if "established" in lines[0].lower():
+                    continue
+                block_headers = {}
+                for line in lines[1:]:
+                    if ":" in line:
+                        key, value = line.split(":", 1)
+                        block_headers[key.strip().lower()] = value.strip()
+                if self.status in (301, 302, 303, 307, 308) and "location" in block_headers:
+                    # Intermediate redirect: the final block follows.
+                    continue
+                self.response_headers = block_headers
+                return True
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            ready, _, _ = select.select([fd], [], [], remaining)
+            if not ready:
+                return False
+            chunk = os.read(fd, 4096)
+            if not chunk:
+                return False
+            self._header_buf += chunk
+
+    def body(self):
+        while True:
+            chunk = self.proc.stdout.read(256 * 1024)
+            if not chunk:
+                break
+            yield chunk
+
+    def close(self):
+        try:
+            if self.proc.poll() is None:
+                self.proc.kill()
+        except Exception:
+            pass
+        try:
+            self.proc.stdout.close()
+        except Exception:
+            pass
+        try:
+            self.proc.stderr.close()
+        except Exception:
+            pass
+        try:
+            self.proc.wait(timeout=5)
+        except Exception:
+            pass
 
 
 def load_access(data_dir=DATA):
@@ -395,54 +495,48 @@ def create_app(jobs, password, resources=None):
             headers["Range"] = client_range
         deadline = time.monotonic() + 45
         attempts = []
-        # A fresh opener per relay request, mirroring the Resolver's own
-        # opener: the global urlopen opener demonstrably stalls from this
-        # service process (2026-10-26: every in-service urlopen attempt
-        # timed out while the same URL fetched in 1-3s from a script with
-        # the same proxy env), while Resolver-opener fetches from the
-        # service succeed. The empty cookie jar also keeps the no-cookie
-        # rule (parse-time cookies stall the origin).
-        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
         for url in urls:
             if time.monotonic() > deadline:
                 break
-            upstream = None
             attempt_start = time.monotonic()
             host = urlsplit(url).hostname or "?"
+            fetch = None
             try:
-                upstream = opener.open(
-                    urllib.request.Request(url, headers=headers), timeout=10)
-                content_type = (upstream.headers.get("Content-Type") or "").lower()
-                if upstream.status not in (200, 206) or ("video/" not in content_type
-                                                         and "octet-stream" not in content_type):
-                    attempts.append(f"{host}:http-{upstream.status}")
-                    upstream.close()
+                fetch = CurlRelay(url, headers, timeout=10)
+                if not fetch.read_headers(timeout=10):
+                    attempts.append(f"{host}:header-timeout")
+                    fetch.close()
+                    continue
+                content_type = fetch.response_headers.get("content-type", "").lower()
+                if fetch.status not in (200, 206) or ("video/" not in content_type
+                                                      and "octet-stream" not in content_type):
+                    attempts.append(f"{host}:http-{fetch.status}")
+                    fetch.close()
                     continue
             except Exception as exc:
                 attempts.append(f"{host}:{type(exc).__name__}({str(exc)[:60]})")
-                if upstream is not None:
-                    try:
-                        upstream.close()
-                    except Exception:
-                        pass
+                if fetch is not None:
+                    fetch.close()
                 continue
             jobs.emit(f"中转：{host} 成功，首字节 {time.monotonic() - attempt_start:.1f}s")
-            length = upstream.headers.get("Content-Length")
-            content_range = upstream.headers.get("Content-Range")
+            length = fetch.response_headers.get("content-length")
+            content_range = fetch.response_headers.get("content-range")
 
-            def generate(upstream=upstream):
+            def generate(fetch=fetch):
                 try:
-                    while True:
-                        chunk = upstream.read(256 * 1024)
-                        if not chunk:
-                            break
-                        yield chunk
+                    yield from fetch.body()
                 finally:
-                    upstream.close()
+                    fetch.close()
 
             response = Response(stream_with_context(generate()), mimetype="video/mp4",
-                                status=upstream.status)
-            response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+                                status=fetch.status)
+            # Waitress encodes headers as latin-1, so a raw Chinese
+            # filename breaks the response (500). Send an ASCII fallback
+            # plus the RFC 5987 UTF-8 filename browsers actually use.
+            ascii_filename = re.sub(r"[^\x20-\x7e]", "_", filename).replace('"', "_")
+            response.headers["Content-Disposition"] = (
+                f'attachment; filename="{ascii_filename}"; '
+                f"filename*=UTF-8''{quote(filename)}")
             response.headers["Accept-Ranges"] = "bytes"
             if length:
                 response.headers["Content-Length"] = length

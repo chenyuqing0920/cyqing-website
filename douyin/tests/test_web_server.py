@@ -1,3 +1,5 @@
+import io
+import os
 import tempfile
 import threading
 import time
@@ -21,12 +23,20 @@ class FakeResolver:
         return Video("123", "手机测试", [self.url], {"Cookie": "server-secret"})
 
 
-class FakeOpener:
-    def __init__(self, fn):
-        self.fn = fn
+class _PipeReader:
+    """stderr stand-in for CurlRelay: a real pipe fd for select/os.read."""
 
-    def open(self, request, timeout=None):
-        return self.fn(request, timeout=timeout)
+    def __init__(self, fd):
+        self._fd = fd
+
+    def fileno(self):
+        return self._fd
+
+    def close(self):
+        try:
+            os.close(self._fd)
+        except OSError:
+            pass
 
 
 class WebTests(unittest.TestCase):
@@ -120,46 +130,49 @@ class WebTests(unittest.TestCase):
         self.assertTrue(self.jobs.video(key))
         body = b"0123456789" * 100
 
-        class FakeUpstream:
-            status = 200
-            headers = {"Content-Type": "video/mp4", "Content-Length": str(len(body))}
-
-            def __init__(self):
-                self.pos = 0
-                self.closed = False
-
-            def read(self, n=-1):
-                if self.pos >= len(body):
-                    return b""
-                chunk = body[self.pos:self.pos + n]
-                self.pos += len(chunk)
-                return chunk
-
-            def close(self):
-                self.closed = True
-
         captured = {}
 
-        def fake_urlopen(request, timeout=None):
-            captured["url"] = request.full_url
-            captured["headers"] = dict(request.header_items())
-            return FakeUpstream()
+        class FakeCurlProc:
+            def __init__(self, cmd, stdout, stderr):
+                captured["argv"] = cmd
+                self.stdout = io.BytesIO(body)
+                r, w = os.pipe()
+                os.write(w, b"HTTP/1.1 200 Connection Established\r\n\r\n"
+                            b"HTTP/1.1 200 OK\r\nContent-Type: video/mp4\r\n"
+                            b"Content-Length: " + str(len(body)).encode() + b"\r\n\r\n")
+                os.close(w)
+                self.stderr = _PipeReader(r)
 
-        with patch("web_server.urllib.request.build_opener", return_value=FakeOpener(fake_urlopen)):
+            def poll(self):
+                return 0
+
+            def kill(self):
+                pass
+
+            def wait(self, timeout=None):
+                return 0
+
+        with patch("web_server.subprocess.Popen", FakeCurlProc):
             with self.client.get(f"/files/{key}/relay") as response:
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.content_type, "video/mp4")
                 self.assertIn("attachment;", response.headers["Content-Disposition"])
                 self.assertIn("123.mp4", response.headers["Content-Disposition"])
                 self.assertEqual(response.data, body)
-        self.assertEqual(captured["url"], FakeResolver.url)
-        self.assertNotIn("Cookie", captured["headers"])
-        self.assertNotIn("server-secret", str(captured["headers"]))
+        self.assertEqual(captured["argv"][-1], FakeResolver.url)
+        self.assertNotIn("Cookie", str(captured["argv"]))
+        self.assertNotIn("server-secret", str(captured["argv"]))
 
-        def refused(request, timeout=None):
-            raise HTTPError(request.full_url, 403, "Forbidden", {}, None)
+        class RefusedCurlProc(FakeCurlProc):
+            def __init__(self, cmd, stdout, stderr):
+                captured["argv"] = cmd
+                self.stdout = io.BytesIO(b"")
+                r, w = os.pipe()
+                os.write(w, b"HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\n\r\n")
+                os.close(w)
+                self.stderr = _PipeReader(r)
 
-        with patch("web_server.urllib.request.build_opener", return_value=FakeOpener(refused)):
+        with patch("web_server.subprocess.Popen", RefusedCurlProc):
             response = self.client.get(f"/files/{key}/relay")
             self.assertEqual(response.status_code, 502)
 
@@ -173,38 +186,36 @@ class WebTests(unittest.TestCase):
             time.sleep(.02)
         body = b"0123456789" * 100
 
-        class RangeUpstream:
-            status = 206
-            headers = {"Content-Type": "video/mp4",
-                       "Content-Length": "400",
-                       "Content-Range": "bytes 100-499/1000"}
-
-            def __init__(self):
-                self.pos = 100
-
-            def read(self, n=-1):
-                if self.pos >= 500:
-                    return b""
-                chunk = body[self.pos:500]
-                self.pos = 500
-                return chunk
-
-            def close(self):
-                pass
-
         captured = {}
 
-        def fake_urlopen(request, timeout=None):
-            captured["range"] = request.get_header("Range")
-            return RangeUpstream()
+        class RangeCurlProc:
+            def __init__(self, cmd, stdout, stderr):
+                captured["argv"] = cmd
+                self.stdout = io.BytesIO(body[100:500])
+                r, w = os.pipe()
+                os.write(w, b"HTTP/1.1 200 Connection Established\r\n\r\n"
+                            b"HTTP/1.1 206 Partial Content\r\nContent-Type: video/mp4\r\n"
+                            b"Content-Length: 400\r\n"
+                            b"Content-Range: bytes 100-499/1000\r\n\r\n")
+                os.close(w)
+                self.stderr = _PipeReader(r)
 
-        with patch("web_server.urllib.request.build_opener", return_value=FakeOpener(fake_urlopen)):
+            def poll(self):
+                return 0
+
+            def kill(self):
+                pass
+
+            def wait(self, timeout=None):
+                return 0
+
+        with patch("web_server.subprocess.Popen", RangeCurlProc):
             with self.client.get(f"/files/{key}/relay", headers={"Range": "bytes=100-499"}) as response:
                 self.assertEqual(response.status_code, 206)
                 self.assertEqual(response.headers["Content-Range"], "bytes 100-499/1000")
                 self.assertEqual(response.headers["Accept-Ranges"], "bytes")
                 self.assertEqual(len(response.data), 400)
-        self.assertEqual(captured["range"], "bytes=100-499")
+        self.assertIn("Range: bytes=100-499", captured["argv"])
 
     def test_rate_limit_and_secure_cookie(self):
         for _ in range(8):
