@@ -5,7 +5,6 @@
 // '/files/<id>' at the portal belongs to the file station, not this app.
 const APP_PREFIX = window.location.pathname.replace(/\/+$/, '');
 let csrf = '', timer, lastSnapshot = '', noticeTimer;
-const transfers = new Map();
 const $ = id => document.getElementById(id);
 // A same-origin portal embeds this tool while keeping its own navigation visible.
 // External scripts remain compatible with the strict script-src 'self' policy.
@@ -40,41 +39,14 @@ function showLogin(){csrf='';lastSnapshot='';clearTimeout(timer);clearTimeout(no
 function showWorkspace(token){csrf=token;$('login-panel').hidden=true;$('workspace').hidden=false;connection('正在读取记录');refresh();}
 function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;}
 function size(value){return (value/1048576).toFixed(1)+' MB';}
-function transferLabel(key, text){
-  const card=document.querySelector('[data-key="'+key+'"]');
-  if(card){const button=card.querySelector('.save-button');if(button){button.textContent=text;button.disabled=transfers.has(key);}const cancel=card.querySelector('.cancel-client');if(cancel)cancel.hidden=!transfers.has(key);const small=card.querySelector('.job-footer small');if(small)small.textContent=transfers.has(key)?'此设备正在接收':'直连下载';}
-}
-async function directDownload(job){
-  if(transfers.has(job.id))return;
-  const transfer={controller:new AbortController(),cancelled:false};transfers.set(job.id,transfer);transferLabel(job.id,'准备直连…');
-  try{
-    const data=await api('/api/jobs/'+job.id+'/direct',{signal:transfer.controller.signal});
-    let blob;
-    for(const url of data.urls.slice(0,5)){
-      if(transfer.cancelled)throw new Error('已取消下载');
-      transfer.controller=new AbortController();let idle;
-      const resetTimeout=()=>{clearTimeout(idle);idle=setTimeout(()=>transfer.controller.abort(),30000);};resetTimeout();
-      try{
-        const response=await fetch(url,{mode:'cors',credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store',signal:transfer.controller.signal});
-        if(response.status!==200)throw new Error('源站拒绝直连');
-        const type=(response.headers.get('Content-Type')||'').toLowerCase();
-        if(!type.includes('video/')&&!type.includes('octet-stream'))throw new Error('源站没有返回视频');
-        const total=Number(response.headers.get('Content-Length')||0),limit=128*1024*1024;
-        if(total>limit){const e=new Error('视频较大，请点击“源站打开”，在视频页面保存。');e.oversized=true;throw e;}
-        const reader=response.body.getReader(),parts=[];let received=0;
-        while(true){const {done,value}=await reader.read();if(done)break;resetTimeout();parts.push(value);received+=value.length;
-          if(received>limit){const e=new Error('视频较大，请点击“源站打开”，在视频页面保存。');e.oversized=true;throw e;}
-          transferLabel(job.id,total?'接收 '+Math.floor(received/total*100)+'%':'接收 '+size(received));}
-        if(!received||(total&&received!==total))throw new Error('源站传输不完整');
-        blob=new Blob(parts,{type:'video/mp4'});break;
-      }catch(e){transfer.controller.abort();if(e.oversized||transfer.cancelled)throw e;}
-      finally{clearTimeout(idle);}
-    }
-    if(!blob)throw new Error('此源站暂不允许网页直连读取。请尝试“源站打开”后保存；仍失败时请重新解析。电脑不会代为转发。');
-    const url=URL.createObjectURL(blob),link=node('a');link.href=url;link.download=data.filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-    notify('视频已由此设备直接接收，请在浏览器下载列表确认保存。');
-  }catch(e){notify(transfer.cancelled?'已取消本设备的下载。':e.message);}
-  finally{transfers.delete(job.id);transferLabel(job.id,'直接下载 ↓');}
+function relayDownload(job){
+  // Server streaming relay (no disk cache): the browser downloads from this
+  // same-origin endpoint, so Douyin's cross-origin read limit no longer
+  // applies and there is no 128 MB in-browser blob limit.
+  const link=node('a');
+  link.href=APP_PREFIX+'/files/'+job.id+'/relay';
+  document.body.append(link);link.click();link.remove();
+  notify('已开始经服务器中转下载，请在浏览器下载列表确认保存。');
 }
 function render(jobs){
   const snapshot=JSON.stringify(jobs);if(lastSnapshot===snapshot)return;lastSnapshot=snapshot;
@@ -91,11 +63,10 @@ function render(jobs){
     const top=node('div','job-top'), icon=node('span','job-icon',job.state==='ready'?'✓':'↓'), info=node('div','job-info');
     info.append(node('h3','',job.title),node('p','job-message',job.message));top.append(icon,info,node('span','job-status',states[job.state]||job.state));card.append(top);
     const footer=node('div','job-footer'),actions=node('div','job-actions'),secondary=node('div','job-secondary');
-    footer.append(node('small','',job.state==='ready'?'直连下载':'单个视频作品'));
+    footer.append(node('small','',job.state==='ready'?'中转下载':'单个视频作品'));
     if(job.state==='ready'){
       const preview=node('button','preview-button','预览');preview.type='button';preview.onclick=()=>{$('preview-video').src=APP_PREFIX+'/files/'+job.id;$('preview-dialog').showModal();};
-      const save=node('button','save-button',transfers.has(job.id)?'设备接收中…':'直接下载 ↓');save.type='button';save.disabled=transfers.has(job.id);save.onclick=()=>directDownload(job);actions.append(preview,save);
-      const cancel=node('button','text-button cancel-client','取消接收');cancel.hidden=!transfers.has(job.id);cancel.onclick=()=>{const t=transfers.get(job.id);if(t){t.cancelled=true;t.controller.abort();}};secondary.append(cancel);
+      const save=node('button','save-button','下载 ↓');save.type='button';save.onclick=()=>relayDownload(job);actions.append(preview,save);
       const origin=node('a','text-button','源站打开 ↗');origin.href=APP_PREFIX+'/files/'+job.id;origin.target='_blank';origin.rel='noopener noreferrer';origin.referrerPolicy='no-referrer';secondary.append(origin);
       const retry=node('button','text-button','重新解析');retry.onclick=async()=>{try{await api('/api/jobs',{method:'POST',body:JSON.stringify({text:job.link})});refresh();}catch(e){notify(e.message);}};secondary.append(retry);
     }else if(['queued','resolving'].includes(job.state)){
@@ -107,7 +78,7 @@ function render(jobs){
 async function refresh(){clearTimeout(timer);if(!csrf)return;try{const data=await api('/api/jobs');render(data.jobs);connection('已连接','online');}catch(e){if(csrf){notify('暂时无法读取记录，请稍后刷新或检查服务。');connection('连接中断','error');}}finally{if(csrf)timer=setTimeout(refresh,2500);}}
 $('login-form').onsubmit=async event=>{event.preventDefault();$('login-button').disabled=true;try{const data=await api('/api/login',{method:'POST',body:JSON.stringify({password:$('password').value})});$('password').value='';showWorkspace(data.csrf);}catch(e){notify(e.message);}finally{$('login-button').disabled=false;}};
 $('toggle-password').onclick=()=>{const hidden=$('password').type==='password';$('password').type=hidden?'text':'password';$('toggle-password').textContent=hidden?'隐藏':'显示';$('toggle-password').setAttribute('aria-label',hidden?'隐藏访问密码':'显示访问密码');};
-$('download-form').onsubmit=async event=>{event.preventDefault();$('submit-button').disabled=true;try{await api('/api/jobs',{method:'POST',body:JSON.stringify({text:$('share-text').value})});$('share-text').value='';notify('正在解析。完成后点击“直接下载”，由你的设备直连视频源站。');await refresh();}catch(e){notify(e.message);}finally{$('submit-button').disabled=false;}};
+$('download-form').onsubmit=async event=>{event.preventDefault();$('submit-button').disabled=true;try{await api('/api/jobs',{method:'POST',body:JSON.stringify({text:$('share-text').value})});$('share-text').value='';notify('正在解析。完成后点击“下载”，经服务器中转保存到你的设备。');await refresh();}catch(e){notify(e.message);}finally{$('submit-button').disabled=false;}};
 $('clear-button').onclick=()=>{$('share-text').value='';$('share-text').focus();};
 $('refresh-button').onclick=refresh;
 $('logout-button').onclick=async()=>{try{await api('/api/logout',{method:'POST',body:'{}'});showLogin();}catch(e){notify(e.message);}};
@@ -118,6 +89,6 @@ $('log-button').onclick=()=>{$('log-dialog').showModal();refreshLogs();clearInte
 $('close-log').onclick=()=>$('log-dialog').close();
 $('log-dialog').addEventListener('close',()=>clearInterval(logTimer));
 $('preview-dialog').addEventListener('close',()=>{$('preview-video').pause();$('preview-video').removeAttribute('src');$('preview-video').load();});
-$('preview-video').addEventListener('error',()=>notify('源站拒绝直连或地址已过期，请重新解析；此模式不会使用服务器转发。'));
+$('preview-video').addEventListener('error',()=>notify('源站拒绝直连或地址已过期，请重新解析。'));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&csrf)refresh();});
 api('/api/session').then(data=>showWorkspace(data.csrf)).catch(()=>showLogin());

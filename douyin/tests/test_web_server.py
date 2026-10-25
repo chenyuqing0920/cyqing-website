@@ -100,6 +100,61 @@ class WebTests(unittest.TestCase):
         self.jobs.update(key, resolved=time.time() - 1000)
         self.assertEqual(self.client.get(f"/files/{key}").status_code, 410)
 
+    def test_relay_streams_resolved_url_only(self):
+        headers = self.login()
+        response = self.client.post("/api/jobs", json={"text": "https://www.douyin.com/video/123"}, headers=headers)
+        self.assertEqual(response.status_code, 202)
+        key = response.json["ids"][0]
+        for _ in range(60):
+            if self.jobs.video(key):
+                break
+            time.sleep(.02)
+        self.assertTrue(self.jobs.video(key))
+        body = b"0123456789" * 100
+
+        class FakeUpstream:
+            status = 200
+            headers = {"Content-Type": "video/mp4", "Content-Length": str(len(body))}
+
+            def __init__(self):
+                self.pos = 0
+                self.closed = False
+
+            def read(self, n=-1):
+                if self.pos >= len(body):
+                    return b""
+                chunk = body[self.pos:self.pos + n]
+                self.pos += len(chunk)
+                return chunk
+
+            def close(self):
+                self.closed = True
+
+        captured = {}
+
+        def fake_urlopen(request, timeout=None):
+            captured["url"] = request.full_url
+            captured["headers"] = dict(request.header_items())
+            return FakeUpstream()
+
+        with patch("web_server.urllib.request.urlopen", side_effect=fake_urlopen):
+            with self.client.get(f"/files/{key}/relay") as response:
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.content_type, "video/mp4")
+                self.assertIn("attachment;", response.headers["Content-Disposition"])
+                self.assertIn("123.mp4", response.headers["Content-Disposition"])
+                self.assertEqual(response.data, body)
+        self.assertEqual(captured["url"], FakeResolver.url)
+        self.assertNotIn("Cookie", captured["headers"])
+        self.assertNotIn("server-secret", str(captured["headers"]))
+
+        def refused(request, timeout=None):
+            raise HTTPError(request.full_url, 403, "Forbidden", {}, None)
+
+        with patch("web_server.urllib.request.urlopen", side_effect=refused):
+            response = self.client.get(f"/files/{key}/relay")
+            self.assertEqual(response.status_code, 502)
+
     def test_rate_limit_and_secure_cookie(self):
         for _ in range(8):
             self.client.post("/api/login", json={"password": "wrong"})

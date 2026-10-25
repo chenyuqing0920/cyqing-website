@@ -12,8 +12,9 @@ from collections import deque
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, jsonify, redirect, render_template, request
+from flask import Flask, Response, jsonify, redirect, render_template, request, stream_with_context
 from urllib.parse import urlsplit
+import urllib.request
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from downloader import DATA, Cancelled, DownloadError, Resolver, extract_any_links, safe_name
@@ -340,7 +341,7 @@ def create_app(jobs, password, resources=None):
         info, _ = video
         urls = direct_links(info)
         if not urls:
-            return None, (jsonify(error="源站没有返回可直接访问的 HTTPS 地址。此模式不会改用电脑转发。"), 422)
+            return None, (jsonify(error="源站没有返回可直接访问的 HTTPS 地址，请重新解析。"), 422)
         return {"urls": urls, "filename": f"{safe_name(info.title)}_{info.id}.mp4", "delivery": "direct-origin"}, None
 
     @app.get("/api/jobs/<key>/direct")
@@ -348,6 +349,81 @@ def create_app(jobs, password, resources=None):
     def direct_metadata(key):
         data, error = direct_info(key)
         return error if error else jsonify(data)
+
+    def relay_headers(info):
+        # Only User-Agent and Referer are taken from the parse-time headers,
+        # plus cookies stored separately on the job. Anything else in
+        # info.headers (including a Cookie entry) is never forwarded.
+        headers = {}
+        source = info.headers or {}
+        if source.get("User-Agent"):
+            headers["User-Agent"] = source["User-Agent"]
+        if source.get("Referer"):
+            headers["Referer"] = source["Referer"]
+        cookies = []
+        for cookie in info.cookies or []:
+            try:
+                cookies.append(f"{cookie.name}={cookie.value}")
+            except Exception:
+                continue
+        if cookies:
+            headers["Cookie"] = "; ".join(cookies)
+        return headers
+
+    @app.get("/files/<key>/relay")
+    @protect
+    def video_relay(key):
+        # Streaming relay (authorized 2026-10-26, replacing the no-relay rule
+        # for downloads): fetch from a resolved Douyin origin and forward
+        # bytes as they arrive. Nothing is written to disk, and no URL other
+        # than this job's resolved HTTPS addresses is ever fetched.
+        try:
+            video = jobs.video(key)
+        except LinkExpired as exc:
+            return jsonify(error=str(exc)), 410
+        if not video:
+            return jsonify(error="链接尚未解析完成或任务不存在，请重新解析"), 404
+        info, _ = video
+        urls = direct_links(info)
+        if not urls:
+            return jsonify(error="源站没有返回可用的 HTTPS 地址，请重新解析"), 422
+        headers = relay_headers(info)
+        filename = f"{safe_name(info.title)}_{info.id}.mp4"
+        for url in urls:
+            upstream = None
+            try:
+                upstream = urllib.request.urlopen(
+                    urllib.request.Request(url, headers=headers), timeout=30)
+                content_type = (upstream.headers.get("Content-Type") or "").lower()
+                if upstream.status != 200 or ("video/" not in content_type
+                                             and "octet-stream" not in content_type):
+                    upstream.close()
+                    continue
+            except Exception:
+                if upstream is not None:
+                    try:
+                        upstream.close()
+                    except Exception:
+                        pass
+                continue
+            length = upstream.headers.get("Content-Length")
+
+            def generate(upstream=upstream):
+                try:
+                    while True:
+                        chunk = upstream.read(256 * 1024)
+                        if not chunk:
+                            break
+                        yield chunk
+                finally:
+                    upstream.close()
+
+            response = Response(stream_with_context(generate()), mimetype="video/mp4")
+            response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+            if length:
+                response.headers["Content-Length"] = length
+            return response
+        return jsonify(error="源站拒绝中转或地址已过期，请重新解析"), 502
 
     @app.get("/files/<key>")
     @protect
