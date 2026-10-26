@@ -152,13 +152,19 @@ class WebTests(unittest.TestCase):
             def wait(self, timeout=None):
                 return 0
 
-        with patch("web_server.subprocess.Popen", FakeCurlProc):
+        with patch("web_server.subprocess.Popen", FakeCurlProc), patch("web_server.select.select", lambda r, w, e, t: (r, [], [])):
             with self.client.get(f"/files/{key}/relay") as response:
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.content_type, "video/mp4")
                 self.assertIn("attachment;", response.headers["Content-Disposition"])
                 self.assertIn("123.mp4", response.headers["Content-Disposition"])
                 self.assertEqual(response.data, body)
+        with patch("web_server.subprocess.Popen", FakeCurlProc), patch("web_server.select.select", lambda r, w, e, t: (r, [], [])):
+            with self.client.get(f"/files/{key}/relay?inline=1") as preview:
+                self.assertEqual(preview.status_code, 200)
+                self.assertTrue(preview.headers["Content-Disposition"].startswith("inline;"))
+                self.assertIn("filename*=UTF-8", preview.headers["Content-Disposition"])
+                self.assertEqual(preview.data, body)
         self.assertEqual(captured["argv"][-1], FakeResolver.url)
         self.assertNotIn("Cookie", str(captured["argv"]))
         self.assertNotIn("server-secret", str(captured["argv"]))
@@ -172,7 +178,7 @@ class WebTests(unittest.TestCase):
                 os.close(w)
                 self.stderr = _PipeReader(r)
 
-        with patch("web_server.subprocess.Popen", RefusedCurlProc):
+        with patch("web_server.subprocess.Popen", RefusedCurlProc), patch("web_server.select.select", lambda r, w, e, t: (r, [], [])):
             response = self.client.get(f"/files/{key}/relay")
             self.assertEqual(response.status_code, 502)
 
@@ -209,8 +215,8 @@ class WebTests(unittest.TestCase):
             def wait(self, timeout=None):
                 return 0
 
-        with patch("web_server.subprocess.Popen", RangeCurlProc):
-            with self.client.get(f"/files/{key}/relay", headers={"Range": "bytes=100-499"}) as response:
+        with patch("web_server.subprocess.Popen", RangeCurlProc), patch("web_server.select.select", lambda r, w, e, t: (r, [], [])):
+            with self.client.get(f"/files/{key}/relay?inline=1", headers={"Range": "bytes=100-499"}) as response:
                 self.assertEqual(response.status_code, 206)
                 self.assertEqual(response.headers["Content-Range"], "bytes 100-499/1000")
                 self.assertEqual(response.headers["Accept-Ranges"], "bytes")
