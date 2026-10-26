@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import tempfile
 import threading
@@ -42,7 +43,7 @@ class _PipeReader:
 class WebTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.jobs = Jobs(FakeResolver)
+        self.jobs = Jobs(FakeResolver, data_dir=self.temp.name)
         self.app = create_app(self.jobs, "testing-password-42")
         self.client = self.app.test_client()
 
@@ -99,7 +100,7 @@ class WebTests(unittest.TestCase):
         self.assertNotIn("path", jobs[0])
         self.assertNotIn("cancel", jobs[0])
         self.assertNotIn("info", jobs[0])
-        self.assertEqual(list(Path(self.temp.name).iterdir()), [])
+        self.assertEqual(list(Path(self.temp.name).rglob("*.mp4")), [])
         with patch("socket.create_connection", side_effect=AssertionError("Server must not connect to video origin")):
             response = self.client.get(f"/api/jobs/{key}/direct")
             self.assertEqual(response.status_code, 200)
@@ -114,7 +115,7 @@ class WebTests(unittest.TestCase):
             response = self.client.head(f"/files/{key}")
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.data, b"")
-        self.assertEqual(list(Path(self.temp.name).iterdir()), [])
+        self.assertEqual(list(Path(self.temp.name).rglob("*.mp4")), [])
         self.jobs.update(key, resolved=time.time() - 1000)
         self.assertEqual(self.client.get(f"/files/{key}").status_code, 410)
 
@@ -169,6 +170,10 @@ class WebTests(unittest.TestCase):
         self.assertNotIn("Cookie", str(captured["argv"]))
         self.assertNotIn("server-secret", str(captured["argv"]))
 
+        # The successful relay above teed the video into the cache; clear
+        # it so the refused origin below is actually exercised.
+        (Path(self.temp.name) / "cache" / f"{key}.mp4").unlink(missing_ok=True)
+
         class RefusedCurlProc(FakeCurlProc):
             def __init__(self, cmd, stdout, stderr):
                 captured["argv"] = cmd
@@ -222,6 +227,115 @@ class WebTests(unittest.TestCase):
                 self.assertEqual(response.headers["Accept-Ranges"], "bytes")
                 self.assertEqual(len(response.data), 400)
         self.assertIn("Range: bytes=100-499", captured["argv"])
+
+    def test_jobs_persist_across_restart_without_secrets(self):
+        key = self.jobs.submit(["https://www.douyin.com/video/123"])[0]
+        for _ in range(60):
+            if self.jobs.video(key):
+                break
+            time.sleep(.02)
+        self.assertTrue(self.jobs.video(key))
+        jobs_file = Path(self.temp.name) / "jobs.json"
+        self.assertTrue(jobs_file.exists())
+        saved = jobs_file.read_text(encoding="utf-8")
+        self.assertNotIn("server-secret", saved)
+        self.assertNotIn("Cookie", saved)
+        self.assertNotIn("cookies", saved)
+        restarted = Jobs(FakeResolver, data_dir=self.temp.name)
+        try:
+            snapshots = restarted.snapshots()
+            self.assertEqual(len(snapshots), 1)
+            self.assertEqual(snapshots[0]["id"], key)
+            self.assertEqual(snapshots[0]["state"], "ready")
+            self.assertTrue(restarted.video(key))
+        finally:
+            restarted.stop()
+            restarted.worker.join(2)
+
+    def test_interrupted_and_infoless_jobs_fail_on_load(self):
+        jobs_file = Path(self.temp.name) / "jobs.json"
+        jobs_file.write_text(json.dumps({"version": 1, "jobs": [
+            {"id": "a" * 24, "title": "排队中", "link": "https://x",
+             "state": "queued", "message": "等待解析", "created": 1},
+            {"id": "b" * 24, "title": "旧记录", "link": "https://x",
+             "state": "ready", "message": "已解析", "created": 1},
+        ]}), encoding="utf-8")
+        restarted = Jobs(FakeResolver, data_dir=self.temp.name)
+        try:
+            by_id = {s["id"]: s for s in restarted.snapshots()}
+            self.assertEqual(by_id["a" * 24]["state"], "failed")
+            self.assertIn("重新解析", by_id["a" * 24]["message"])
+            self.assertEqual(by_id["b" * 24]["state"], "failed")
+            self.assertIn("重新解析", by_id["b" * 24]["message"])
+        finally:
+            restarted.stop()
+            restarted.worker.join(2)
+
+    def test_relay_serves_cached_file_and_inline(self):
+        headers = self.login()
+        response = self.client.post("/api/jobs", json={"text": "https://www.douyin.com/video/123"}, headers=headers)
+        key = response.json["ids"][0]
+        for _ in range(60):
+            if self.jobs.video(key):
+                break
+            time.sleep(.02)
+        cache = Path(self.temp.name) / "cache" / f"{key}.mp4"
+        cache.write_bytes(b"cached-video-bytes")
+        with self.client.get(f"/files/{key}/relay") as response:
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data, b"cached-video-bytes")
+            self.assertIn("attachment;", response.headers["Content-Disposition"])
+        with self.client.get(f"/files/{key}/relay?inline=1") as response:
+            self.assertEqual(response.status_code, 200)
+            self.assertNotIn("attachment;", response.headers.get("Content-Disposition", ""))
+
+    def test_parse_time_cache_via_fake_curl(self):
+        body = b"0123456789" * 50
+
+        class FakeCurlRelay:
+            def __init__(self, url, headers, timeout=None):
+                self.url = url
+                self.status = 200
+                self.response_headers = {"content-type": "video/mp4",
+                                         "content-length": str(len(body))}
+
+            def read_headers(self, timeout=None):
+                return True
+
+            def body(self):
+                yield body
+
+            def close(self):
+                pass
+
+        with patch("web_server.CurlRelay", FakeCurlRelay):
+            key = self.jobs.submit(["https://www.douyin.com/video/123"])[0]
+            for _ in range(60):
+                if self.jobs.video(key):
+                    break
+                time.sleep(.02)
+            cache = Path(self.temp.name) / "cache" / f"{key}.mp4"
+            for _ in range(100):
+                if cache.exists():
+                    break
+                time.sleep(.02)
+            self.assertTrue(cache.exists())
+            self.assertEqual(cache.read_bytes(), body)
+
+    def test_delete_removes_record_and_cache(self):
+        headers = self.login()
+        response = self.client.post("/api/jobs", json={"text": "https://www.douyin.com/video/123"}, headers=headers)
+        key = response.json["ids"][0]
+        for _ in range(60):
+            if self.jobs.video(key):
+                break
+            time.sleep(.02)
+        cache = Path(self.temp.name) / "cache" / f"{key}.mp4"
+        cache.write_bytes(b"x")
+        response = self.client.post(f"/api/jobs/{key}/delete", json={}, headers=headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get("/api/jobs", headers=headers).json["jobs"], [])
+        self.assertFalse(cache.exists())
 
     def test_rate_limit_and_secure_cookie(self):
         for _ in range(8):

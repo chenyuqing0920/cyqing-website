@@ -16,7 +16,7 @@ from collections import deque
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, Response, jsonify, redirect, render_template, request, stream_with_context
+from flask import Flask, Response, jsonify, redirect, render_template, request, send_file, stream_with_context
 from urllib.parse import quote, urlsplit
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -149,7 +149,8 @@ def load_access(data_dir=DATA):
 
 
 class Jobs:
-    def __init__(self, resolver_factory=Resolver, on_log=None, log_file=None):
+    def __init__(self, resolver_factory=Resolver, on_log=None, log_file=None,
+                 data_dir=None):
         self.resolver_factory = resolver_factory
         self.on_log = on_log or (lambda _: None)
         self.lock = threading.RLock()
@@ -158,6 +159,23 @@ class Jobs:
         self.stopping = threading.Event()
         self.active_cancel = None
         self.browser_lock = threading.Lock()
+        # Persistent records (2026-10-26, user decision: server keeps a
+        # copy of each video so old records stay downloadable): jobs live
+        # in jobs.json next to the log, videos in cache/<job-id>.mp4.
+        # Records used to live only in memory and vanished on every
+        # restart or VM replacement.
+        self.data_dir = Path(data_dir) if data_dir else DATA
+        self._jobs_file = self.data_dir / "jobs.json"
+        self._cache_dir = self.data_dir / "cache"
+        try:
+            self._cache_dir.mkdir(parents=True, exist_ok=True)
+            for stale in self._cache_dir.glob("*.tmp"):
+                try:
+                    stale.unlink()
+                except OSError:
+                    pass
+        except OSError:
+            pass
         # Viewable run log: an in-memory ring buffer mirrored to a file in
         # the data directory, so parse stages and failures can be read from
         # the web UI (/api/logs) instead of only from the server's stdout.
@@ -165,8 +183,165 @@ class Jobs:
         self._log_lines = deque(maxlen=500)
         self._log_file = Path(log_file) if log_file else DATA / "resolver.log"
         self._load_log_tail()
+        self._load_jobs()
         self.worker = threading.Thread(target=self.run, daemon=True)
         self.worker.start()
+
+    # ---- persistence: records + cached videos ----
+
+    def cache_path(self, key):
+        return self._cache_dir / f"{key}.mp4"
+
+    def cache_tmp_path(self, key):
+        return self._cache_dir / f"{key}.{secrets.token_hex(4)}.tmp"
+
+    def cached(self, key):
+        try:
+            return self.cache_path(key).stat().st_size > 0
+        except OSError:
+            return False
+
+    def _job_to_record(self, job):
+        info = job.get("info")
+        record = {"id": job["id"], "title": job.get("title") or "视频",
+                  "link": job.get("link") or "", "state": job.get("state"),
+                  "message": job.get("message") or "",
+                  "created": job.get("created") or 0,
+                  "resolved": job.get("resolved")}
+        if info is not None:
+            # Never persist cookies or Cookie headers: they are session
+            # secrets and they stall the origin when replayed.
+            headers = {k: v for k, v in (info.headers or {}).items()
+                       if k.lower() != "cookie"}
+            record["info"] = {"id": info.id, "title": info.title,
+                              "urls": list(info.urls), "headers": headers}
+        return record
+
+    def _record_to_job(self, record):
+        if not isinstance(record, dict) or not record.get("id"):
+            return None
+        job = {"id": record["id"], "title": record.get("title") or "视频",
+               "link": record.get("link") or "",
+               "state": record.get("state") or "failed",
+               "message": record.get("message") or "",
+               "created": record.get("created") or 0,
+               "cancel": threading.Event()}
+        if record.get("resolved"):
+            job["resolved"] = record["resolved"]
+        info = record.get("info")
+        if isinstance(info, dict) and info.get("urls"):
+            from downloader import Video
+            job["info"] = Video(str(info.get("id") or "video"),
+                                str(info.get("title") or job["title"]),
+                                list(info["urls"]),
+                                dict(info.get("headers") or {}))
+        if job["state"] in ("queued", "resolving"):
+            job["state"] = "failed"
+            job["message"] = "服务重启，解析被中断，请重新解析"
+        elif job["state"] == "ready" and "info" not in job \
+                and not self.cached(job["id"]):
+            # Pre-persistence records (or a lost cache): the origin URLs
+            # are gone, so the record is kept but must be re-parsed.
+            job["state"] = "failed"
+            job["message"] = "服务升级，记录已保留，请重新解析"
+        return job
+
+    def _save_jobs(self):
+        try:
+            with self.lock:
+                records = [self._job_to_record(job)
+                           for job in self.items.values()]
+            tmp = self._jobs_file.with_suffix(".json.tmp")
+            tmp.write_text(json.dumps({"version": 1, "jobs": records},
+                                      ensure_ascii=False), encoding="utf-8")
+            tmp.replace(self._jobs_file)
+        except OSError as exc:
+            self.emit(f"记录保存失败：{exc}")
+
+    def _load_jobs(self):
+        try:
+            data = json.loads(self._jobs_file.read_text(encoding="utf-8"))
+            records = data.get("jobs") or []
+        except (OSError, ValueError):
+            return
+        with self.lock:
+            for record in records[-500:]:
+                job = self._record_to_job(record)
+                if job is not None and job["id"] not in self.items:
+                    self.items[job["id"]] = job
+        if self.items:
+            self.emit(f"已恢复 {len(self.items)} 条解析记录")
+
+    def prune_cache(self, max_files=500, max_bytes=10 * 1024 ** 3):
+        """Drop oldest cached videos when count or size exceeds budget."""
+        try:
+            files = sorted((p for p in self._cache_dir.glob("*.mp4")
+                            if p.is_file()),
+                           key=lambda p: p.stat().st_mtime)
+            total = sum(p.stat().st_size for p in files)
+            while files and (len(files) > max_files or total > max_bytes):
+                victim = files.pop(0)
+                try:
+                    total -= victim.stat().st_size
+                    victim.unlink()
+                except OSError:
+                    pass
+        except OSError:
+            pass
+
+    def cache_video(self, key, info):
+        """Best-effort: download one working origin URL into the cache.
+
+        Never raises and never fails the job: a failed cache just means
+        the record falls back to origin relay while its URLs are fresh.
+        """
+        if self.cached(key):
+            return True
+        headers = {k: v for k, v in (info.headers or {}).items()
+                   if k.lower() in ("user-agent", "referer")}
+        deadline = time.monotonic() + 60
+        for url in direct_links(info):
+            if time.monotonic() > deadline:
+                break
+            host = urlsplit(url).hostname or "?"
+            fetch = None
+            tmp = self._cache_dir / f"{key}.tmp"
+            try:
+                fetch = CurlRelay(url, headers, timeout=15)
+                if not fetch.read_headers(timeout=15):
+                    continue
+                content_type = fetch.response_headers.get("content-type", "").lower()
+                if fetch.status != 200 or ("video/" not in content_type
+                                           and "octet-stream" not in content_type):
+                    continue
+                expected = fetch.response_headers.get("content-length")
+                expected = int(expected) if expected and expected.isdigit() else None
+                written = 0
+                with tmp.open("wb") as handle:
+                    for chunk in fetch.body():
+                        handle.write(chunk)
+                        written += len(chunk)
+                if expected is not None and written != expected:
+                    tmp.unlink(missing_ok=True)
+                    continue
+                if written == 0:
+                    tmp.unlink(missing_ok=True)
+                    continue
+                tmp.replace(self.cache_path(key))
+                self.prune_cache()
+                self.emit(f"服务器已保存副本：{info.title}（{written} 字节）")
+                return True
+            except Exception as exc:
+                try:
+                    tmp.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                self.emit(f"副本保存失败（{host}）：{type(exc).__name__}")
+                continue
+            finally:
+                if fetch is not None:
+                    fetch.close()
+        return False
 
     def _load_log_tail(self):
         try:
@@ -203,7 +378,7 @@ class Jobs:
             if sum(x["state"] in ("queued", "resolving") for x in self.items.values()) + len(links) > 30:
                 raise DownloadError("队列最多容纳 30 个任务，请等待完成后再提交。")
             if len(self.items) + len(links) > 500:
-                raise DownloadError("解析记录已达到 500 条；请重启远程版清理列表。手机内已下载的视频不受影响。")
+                raise DownloadError("解析记录已达到 500 条上限，请删除旧记录后再提交。")
             result = []
             for link in links:
                 key = secrets.token_hex(12)
@@ -213,15 +388,35 @@ class Jobs:
                 self.queue.put(key)
                 result.append(key)
             self.emit(f"收到 {len(links)} 个解析任务")
+            self._save_jobs()
             return result
 
     def update(self, key, **values):
         with self.lock:
             self.items[key].update(values)
+        # Progress messages change constantly during a resolve; only
+        # persist when the durable facts change.
+        if values.keys() & {"state", "title", "info", "resolved"}:
+            self._save_jobs()
 
     def snapshots(self):
         with self.lock:
-            return [{k: v for k, v in job.items() if k not in ("cancel", "info")} for job in reversed(list(self.items.values()))]
+            jobs = []
+            for job in reversed(list(self.items.values())):
+                record = {k: v for k, v in job.items()
+                          if k not in ("cancel", "info")}
+                record["cached"] = self.cached(job["id"])
+                jobs.append(record)
+            return jobs
+
+    def peek(self, key):
+        with self.lock:
+            job = self.items.get(key)
+            if not job:
+                return None
+            return {"id": job["id"], "title": job.get("title") or "视频",
+                    "state": job.get("state"),
+                    "cancelled": job["cancel"].is_set()}
 
     def cancel(self, key):
         with self.lock:
@@ -231,7 +426,22 @@ class Jobs:
             job["cancel"].set()
             if job["state"] in ("queued", "ready"):
                 job.update(state="cancelled", message="已取消")
+            self._save_jobs()
             return True
+
+    def delete(self, key):
+        """Remove a terminal record and its cached video, if any."""
+        with self.lock:
+            job = self.items.get(key)
+            if not job or job["state"] in ("queued", "resolving"):
+                return False
+            del self.items[key]
+        try:
+            self.cache_path(key).unlink(missing_ok=True)
+        except OSError:
+            pass
+        self._save_jobs()
+        return True
 
     def video(self, key):
         with self.lock:
@@ -265,8 +475,10 @@ class Jobs:
                     if cancel.is_set():
                         raise Cancelled("已取消")
                     self.update(key, title=info.title, state="ready", info=info, resolved=time.time(),
-                                message="已解析，访客设备直接从视频源站下载")
-                self.emit(f"已解析：{info.title}（只提供地址，不转发视频）")
+                                message="已解析，可下载")
+                if not cancel.is_set():
+                    self.cache_video(key, info)
+                self.emit(f"已解析：{info.title}")
             except Cancelled:
                 self.update(key, state="cancelled", message="已取消")
             except Exception as exc:
@@ -431,6 +643,13 @@ def create_app(jobs, password, resources=None):
     def cancel_job(key):
         return (jsonify(ok=True), 200) if jobs.cancel(key) else (jsonify(error="任务不存在"), 404)
 
+    @app.post("/api/jobs/<key>/delete")
+    @protect
+    def delete_job(key):
+        if jobs.delete(key):
+            return jsonify(ok=True), 200
+        return jsonify(error="任务不存在或正在解析中，请先取消"), 404
+
     def direct_info(key):
         try:
             video = jobs.video(key)
@@ -468,11 +687,22 @@ def create_app(jobs, password, resources=None):
     @app.get("/files/<key>/relay")
     @protect
     def video_relay(key):
-        # Streaming relay (authorized 2026-10-26, replacing the no-relay rule
-        # for downloads): fetch from a resolved Douyin origin and forward
-        # bytes as they arrive. Nothing is written to disk, and no URL other
-        # than this job's resolved HTTPS addresses is ever fetched. Upstream
-        # requests carry only the parse-time User-Agent/Referer, no cookies.
+        # Download path (2026-10-26: user authorized server streaming
+        # relay, and later server-kept copies): a cached copy wins over
+        # the origin, so old records stay downloadable after their origin
+        # URLs expire. Without a cache, fetch from a resolved Douyin
+        # origin and forward bytes as they arrive. Upstream requests
+        # carry only the parse-time User-Agent/Referer, no cookies.
+        job = jobs.peek(key)
+        if not job:
+            return jsonify(error="链接尚未解析完成或任务不存在，请重新解析"), 404
+        inline = request.args.get("inline") == "1"
+        if jobs.cached(key) and not job["cancelled"]:
+            filename = f"{safe_name(job['title'])}_{job['id']}.mp4"
+            jobs.emit(f"缓存命中：{job['title']}")
+            return send_file(jobs.cache_path(key), mimetype="video/mp4",
+                             as_attachment=not inline, download_name=filename,
+                             conditional=True)
         try:
             video = jobs.video(key)
         except LinkExpired as exc:
@@ -522,11 +752,51 @@ def create_app(jobs, password, resources=None):
             length = fetch.response_headers.get("content-length")
             content_range = fetch.response_headers.get("content-range")
 
+            expected = int(length) if length and length.isdigit() else None
+
             def generate(fetch=fetch):
+                # Tee a complete origin download into the cache so this
+                # record stays downloadable later. Partial (Range)
+                # downloads never tee. Tee failures must never break the
+                # download in progress.
+                tmp_path = None
+                tmp_file = None
+                written = 0
+                promoted = False
                 try:
-                    yield from fetch.body()
+                    if client_range is None:
+                        try:
+                            tmp_path = jobs.cache_tmp_path(key)
+                            tmp_file = tmp_path.open("wb")
+                        except OSError:
+                            tmp_path = None
+                    for chunk in fetch.body():
+                        yield chunk
+                        if tmp_file is not None:
+                            try:
+                                tmp_file.write(chunk)
+                                written += len(chunk)
+                            except OSError:
+                                tmp_file = None
+                    if tmp_file is not None:
+                        tmp_file.close()
+                        tmp_file = None
+                        if written > 0 and (expected is None or written == expected):
+                            os.replace(tmp_path, jobs.cache_path(key))
+                            jobs.prune_cache()
+                            promoted = True
                 finally:
                     fetch.close()
+                    if tmp_file is not None:
+                        try:
+                            tmp_file.close()
+                        except Exception:
+                            pass
+                    if tmp_path is not None and not promoted:
+                        try:
+                            tmp_path.unlink(missing_ok=True)
+                        except OSError:
+                            pass
 
             response = Response(stream_with_context(generate()), mimetype="video/mp4",
                                 status=fetch.status)

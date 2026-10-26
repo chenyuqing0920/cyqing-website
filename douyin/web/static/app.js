@@ -47,13 +47,12 @@ function previewVideo(job){
   $('preview-dialog').showModal();
 }
 function relayDownload(job){
-  // Server streaming relay (no disk cache): the browser downloads from this
-  // same-origin endpoint, so Douyin's cross-origin read limit no longer
-  // applies and there is no 128 MB in-browser blob limit.
+  // Same-origin download: a server-kept copy wins, otherwise the server
+  // streams from the origin (no 128 MB in-browser blob limit either way).
   const link=node('a');
   link.href=videoURL(job);link.download='';
   document.body.append(link);link.click();link.remove();
-  notify('已开始经服务器中转下载，请在浏览器下载列表确认保存。');
+  notify(job.cached?'已开始从服务器本地下载，请在浏览器下载列表确认保存。':'已开始经服务器中转下载，请在浏览器下载列表确认保存。');
 }
 function render(jobs){
   const snapshot=JSON.stringify(jobs);if(lastSnapshot===snapshot)return;lastSnapshot=snapshot;
@@ -70,12 +69,12 @@ function render(jobs){
   }
   for(const [index,job] of jobs.entries()){
     const old=existing.get(job.id);
-    if(job.state==='ready'&&old?.dataset.state==='ready'&&old.querySelector('h3').textContent===job.title)continue;
-    const card=node('article','job');card.dataset.state=job.state;card.dataset.key=job.id;
+    if(job.state==='ready'&&old?.dataset.state==='ready'&&old.dataset.cached===(job.cached?'1':'')&&old.querySelector('h3').textContent===job.title)continue;
+    const card=node('article','job');card.dataset.state=job.state;card.dataset.key=job.id;card.dataset.cached=job.cached?'1':'';
     const top=node('div','job-top'), icon=node('span','job-icon',job.state==='ready'?'✓':'↓'), info=node('div','job-info');
     info.append(node('h3','',job.title),node('p','job-message',job.message));top.append(icon,info,node('span','job-status',states[job.state]||job.state));card.append(top);
     const footer=node('div','job-footer'),actions=node('div','job-actions'),secondary=node('div','job-secondary');
-    footer.append(node('small','',job.state==='ready'?'中转下载':'单个视频作品'));
+    footer.append(node('small','',job.state==='ready'?(job.cached?'本地下载':'中转下载'):'单个视频作品'));
     if(job.state==='ready'){
       const media=node('video','job-video');
         media.controls=true;media.playsInline=true;media.preload='none';media.src=videoURL(job,true);media.setAttribute('aria-label',job.title||'已解析视频');
@@ -89,6 +88,7 @@ function render(jobs){
     }else if(['queued','resolving'].includes(job.state)){
       const cancel=node('button','text-button','取消');cancel.onclick=async()=>{try{await api('/api/jobs/'+job.id+'/cancel',{method:'POST',body:'{}'});refresh();}catch(e){notify(e.message);}};actions.append(cancel);
     }else{const retry=node('button','text-button','重试');retry.onclick=async()=>{try{await api('/api/jobs',{method:'POST',body:JSON.stringify({text:job.link})});refresh();}catch(e){notify(e.message);}};actions.append(retry);}
+    if(!['queued','resolving'].includes(job.state)){const del=node('button','text-button','删除');del.onclick=async()=>{if(!confirm('确定删除这条记录吗？服务器上的副本也会一起删除。'))return;try{await api('/api/jobs/'+job.id+'/delete',{method:'POST',body:'{}'});refresh();}catch(e){notify(e.message);}};secondary.append(del);}
     footer.append(actions);card.append(footer);if(secondary.childElementCount)card.append(secondary);
     if(old)old.replaceWith(card);else $('jobs').insertBefore(card,$('jobs').children[index]||null);
   }
