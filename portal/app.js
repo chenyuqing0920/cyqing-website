@@ -25,7 +25,7 @@ function normalizeWatch(w) {
 function readRecords(key, normalize) {
   try {
     const raw=localStorage.getItem(key);
-    if(raw===null)return [];
+    if(raw===null){blockedStorage.delete(key);return [];}
     const data=JSON.parse(raw);
     if(!Array.isArray(data))throw Error('记录格式错误');
     const records=data.map(normalize);
@@ -44,8 +44,15 @@ function storeRecords(key, value) {
 }
 let myPrompts=readRecords('cyqing_my_prompts',normalizePrompt);
 let watchList=readRecords('cyqing_watchlist',normalizeWatch);
+function hiddenPromptKey(value){
+  if(typeof value!=='string')throw Error('无效的内置提示词记录');
+  return value;
+}
+let hiddenPrompts=readRecords('cyqing_hidden_prompts',hiddenPromptKey);
+// Source and title identify built-ins independently of their ordering.
+const builtinKey=p=>JSON.stringify([p.src||'',p.title]);
 let promptCategory='全部',watchStatus='全部',currentView='home';
-const allPrompts=()=>PROMPTS.map(p=>({...p,mine:false})).concat(myPrompts.map(p=>({...p,mine:true})));
+const allPrompts=()=>PROMPTS.filter(p=>!hiddenPrompts.includes(builtinKey(p))).map(p=>({...p,mine:false})).concat(myPrompts.map(p=>({...p,mine:true})));
 function downloadFile(filename, content, type='application/json') {
   const url=URL.createObjectURL(new Blob([content],{type}));
   const a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();
@@ -87,12 +94,15 @@ function renderSites() {
   $('#site-grid').innerHTML=sites.length?sites.map(s=>`<a class="site-card" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer"><span class="site-icon" aria-hidden="true">${esc(s.name[0])}</span><h2>${esc(s.name)}</h2><p>${esc(s.desc)}</p><small>${esc(s.price)} · ${esc(new URL(s.url).hostname)}</small></a>`).join(''):'<p class="empty-hint">没有找到这个网站，换个关键词试试。</p>';
 }
 function renderPrompts() {
+  const removed=PROMPTS.filter(p=>hiddenPrompts.includes(builtinKey(p))).length;
+  $('#prompt-restore-btn').hidden=removed===0;
+  $('#prompt-restore-btn').textContent=`恢复内置提示词（${removed}）`;
   const all=allPrompts(),q=$('#prompt-search').value.trim().toLowerCase();
   const cats=['全部','我的',...new Set(all.map(p=>p.cat))];
   if(!cats.includes(promptCategory))promptCategory='全部';
   $('#prompt-chips').innerHTML=cats.map(c=>`<button class="chip${c===promptCategory?' on':''}" data-category="${esc(c)}" aria-pressed="${c===promptCategory}">${esc(c)}</button>`).join('');
   const list=all.map((p,i)=>({...p,index:i})).filter(p=>(promptCategory==='全部'||(promptCategory==='我的'?p.mine:p.cat===promptCategory))&&[p.title,p.desc,p.text,p.cat].join(' ').toLowerCase().includes(q));
-  $('#prompt-grid').innerHTML=list.length?list.map(p=>`<article class="pcard"><span class="category">${esc(p.cat)}</span><h3>${esc(p.title)}${p.mine?'<span class="badge-mine">我的</span>':''}</h3><p class="pdesc">${esc(p.desc)}</p><details><summary>查看完整提示词</summary><pre tabindex="0">${esc(p.text)}</pre></details><div class="prow"><span class="psrc">来源：${esc(p.src||'自己添加')}</span><span class="prow-btns"><button class="copy-btn" data-copy="${p.index}" aria-label="复制${esc(p.title)}">复制</button>${p.mine?`<button class="mini-btn" data-edit="${esc(p.id)}">编辑</button><button class="mini-btn danger" data-delete="${esc(p.id)}">删除</button>`:''}</span></div></article>`).join(''):'<p class="empty-hint"><strong>这里暂时没有提示词</strong>换个分类或关键词，也可以添加一条自己的提示词。</p>';
+  $('#prompt-grid').innerHTML=list.length?list.map(p=>`<article class="pcard"><span class="category">${esc(p.cat)}</span><h3>${esc(p.title)}${p.mine?'<span class="badge-mine">我的</span>':''}</h3><p class="pdesc">${esc(p.desc)}</p><details><summary>查看完整提示词</summary><pre tabindex="0">${esc(p.text)}</pre></details><div class="prow"><span class="psrc">来源：${esc(p.src||'自己添加')}</span><span class="prow-btns"><button class="copy-btn" data-copy="${p.index}" aria-label="复制${esc(p.title)}">复制</button>${p.mine?`<button class="mini-btn" data-edit="${esc(p.id)}">编辑</button><button class="mini-btn danger" data-delete="${esc(p.id)}">删除</button>`:`<button class="mini-btn danger" data-delete-builtin="${esc(builtinKey(p))}">删除</button>`}</span></div></article>`).join(''):'<p class="empty-hint"><strong>这里暂时没有提示词</strong>换个分类或关键词，也可以添加一条自己的提示词。</p>';
 }
 function renderWatch() {
   $('#watch-stats').innerHTML=[['全部',watchList.length],...['想看','在看','已看'].map(s=>[s,watchList.filter(w=>w.status===s).length])].map(([label,n])=>`<div class="watch-stat"><b>${n}</b>${label}</div>`).join('');
@@ -143,6 +153,13 @@ document.addEventListener('click',event=>{
     if(b.dataset.copy!==undefined)copyText(allPrompts()[+b.dataset.copy].text,b);
     if(b.dataset.homeCopy!==undefined)copyText(allPrompts()[+b.dataset.homeCopy].text,b);
     if(b.dataset.edit)openPromptForm(myPrompts.find(p=>p.id===b.dataset.edit));
+    if(b.dataset.deleteBuiltin){
+      const p=PROMPTS.find(p=>builtinKey(p)===b.dataset.deleteBuiltin);
+      if(p&&confirm(`从当前浏览器的提示词库移除「${p.title}」吗？之后可以通过「恢复内置提示词」找回。`)){
+        const next=[...new Set([...hiddenPrompts,builtinKey(p)])];
+        storeRecords('cyqing_hidden_prompts',next);hiddenPrompts=next;renderPrompts();renderHome();notify('已从当前浏览器移除，可恢复内置提示词。');
+      }
+    }
     if(b.dataset.watchEdit)openWatchForm(watchList.find(w=>w.id===b.dataset.watchEdit));
     if(b.dataset.delete){
       const p=myPrompts.find(p=>p.id===b.dataset.delete);
@@ -169,6 +186,11 @@ $('#watch-form-cancel').onclick=()=>{$('#watch-form').hidden=true;$('#watch-add-
 $('#pf-cat').onchange=()=>{$('#pf-cat-new').hidden=$('#pf-cat').value!=='__new';if(!$('#pf-cat-new').hidden)$('#pf-cat-new').focus();};
 $('#prompt-search').oninput=renderPrompts;$('#site-search').oninput=renderSites;$('#watch-search').oninput=renderWatch;$('#watch-type-filter').onchange=renderWatch;
 $('#prompt-export-btn').onclick=()=>exportRecords('cyqing_my_prompts',myPrompts,'my-prompts.json');
+$('#prompt-restore-btn').onclick=()=>{
+  if(!confirm('恢复所有已移除的内置提示词？自己添加的提示词不会受影响。'))return;
+  try{storeRecords('cyqing_hidden_prompts',[]);hiddenPrompts=[];renderPrompts();renderHome();notify('已恢复内置提示词。');}
+  catch(e){notify(e.message,true);}
+};
 $('#watch-export-btn').onclick=()=>exportRecords('cyqing_watchlist',watchList,'my-watchlist.json');
 function bindImport(kind,key,normalize,getRecords,setRecords) {
   $('#'+kind+'-import-btn').onclick=()=>$('#'+kind+'-import-file').click();
@@ -270,6 +292,7 @@ function route(focus=false) {
 }
 window.addEventListener('hashchange',()=>route(true));
 window.addEventListener('storage',event=>{
+  if(event.key==='cyqing_hidden_prompts'||event.key===null)hiddenPrompts=readRecords('cyqing_hidden_prompts',hiddenPromptKey);
   if(event.key==='cyqing_my_prompts')myPrompts=readRecords(event.key,normalizePrompt);
   if(event.key==='cyqing_watchlist')watchList=readRecords(event.key,normalizeWatch);
   if(event.key===null){myPrompts=readRecords('cyqing_my_prompts',normalizePrompt);watchList=readRecords('cyqing_watchlist',normalizeWatch);}

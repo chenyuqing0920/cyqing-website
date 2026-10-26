@@ -61,8 +61,8 @@
   <section id="prompts-view" data-view="prompts" hidden aria-label="提示词库">
     <div class="section-tools"><label class="search"><svg><use href="#i-search"/></svg><input id="prompt-search" type="search" placeholder="搜索标题、用途或正文" aria-label="搜索提示词"></label><button class="primary" id="prompt-add-btn">添加提示词</button></div>
     <div class="chips" id="prompt-chips" role="group" aria-label="提示词分类"></div>
-    <div class="toolbar"><p>好用的提示词，按场景整理，随取随用。</p><button class="quiet" id="prompt-export-btn">导出我的提示词</button><button class="quiet" id="prompt-import-btn">导入</button><input id="prompt-import-file" type="file" accept=".json,application/json" hidden></div>
-    <p class="storage-note">自己添加的内容保存在当前浏览器；导出文件可用于备份和换设备导入。</p>
+    <div class="toolbar"><p>好用的提示词，按场景整理，随取随用。</p><button class="quiet" id="prompt-export-btn">导出我的提示词</button><button class="quiet" id="prompt-import-btn">导入</button><button class="quiet" id="prompt-restore-btn" hidden>恢复内置提示词</button><input id="prompt-import-file" type="file" accept=".json,application/json" hidden></div>
+    <p class="storage-note">自己添加的内容保存在当前浏览器，可导出备份。所有提示词均可删除；内置提示词只从当前浏览器移除，可随时恢复。</p>
     <form id="prompt-form" class="form-panel" hidden>
       <h2 id="prompt-form-title">添加提示词</h2><input type="hidden" id="pf-id">
       <div class="form-grid"><label>标题<input id="pf-title" required maxlength="60" placeholder="比如：代码审查助手"></label><label>分类<select id="pf-cat"></select><input id="pf-cat-new" aria-label="新分类名称" placeholder="输入新分类名称" maxlength="40" hidden></label></div>
