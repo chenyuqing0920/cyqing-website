@@ -534,8 +534,9 @@ def create_app(jobs, password, resources=None):
             # filename breaks the response (500). Send an ASCII fallback
             # plus the RFC 5987 UTF-8 filename browsers actually use.
             ascii_filename = re.sub(r"[^\x20-\x7e]", "_", filename).replace('"', "_")
+            disposition = "inline" if request.args.get("inline") == "1" else "attachment"
             response.headers["Content-Disposition"] = (
-                f'attachment; filename="{ascii_filename}"; '
+                f'{disposition}; filename="{ascii_filename}"; '
                 f"filename*=UTF-8''{quote(filename)}")
             response.headers["Accept-Ranges"] = "bytes"
             if length:
