@@ -47,4 +47,4 @@ journalctl -u personal-life-space.service -f
 
 ## 更新与回滚
 
-先备份状态目录中的数据库和上传文件并验证恢复；检查 Git 工作区干净，再 `git fetch` 和 `git merge --ff-only origin/personal-life-space`（不要拉 main，那是旧项目）。运行 `bash deploy/muse/prepare.sh` 安装锁定依赖、执行迁移和构建，然后 `sudo systemctl restart personal-life-space.service` 并检查日志与健康接口。避免自动提交、自动合并冲突或清理数据。若数据库迁移无法逆向，回滚代码前先恢复匹配版本的数据库备份。
+先备份状态目录中的数据库和上传文件并验证恢复；检查 Git 工作区干净，再 `git fetch` 和 `git merge --ff-only origin/main`（主分支即新站内容；personal-life-space 分支已并入主分支、仅作历史保留）。运行 `bash deploy/muse/prepare.sh` 安装锁定依赖、执行迁移和构建，然后 `sudo systemctl restart personal-life-space.service` 并检查日志与健康接口。避免自动提交、自动合并冲突或清理数据。若数据库迁移无法逆向，回滚代码前先恢复匹配版本的数据库备份。
