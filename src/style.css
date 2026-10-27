@@ -10,3 +10,18 @@
 .top-nav.scrolled{position:fixed;background:#172a3cde;backdrop-filter:blur(18px);box-shadow:0 8px 28px #17283b1c}
 .editor-fields{border:0;padding:0;margin:0;min-width:0}
 @media(max-width:760px){.admin-side>button{display:flex;margin:8px 0 0;padding:8px 10px}}
+html.flip-home{scroll-snap-type:y mandatory}
+.flip-page{height:100vh;height:100dvh;overflow-y:auto;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;box-sizing:border-box}
+.flip-page+.flip-page{padding:96px 0 36px}
+.flip-page .hero{min-height:100dvh}
+.flip-page .trip-cover{height:160px}
+.flip-page .about-banner{min-height:220px}
+.flip-page .section-title{margin:35px 0 18px}
+.flip-aside{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+.flip-aside .aside-note{grid-column:1/-1}
+.flip-dots{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:90;display:grid;gap:12px}
+.flip-dots button{width:10px;height:10px;padding:0;border:0;border-radius:50%;background:#c7ccd6;opacity:.85}
+.flip-dots button.active{background:#d88faa;transform:scale(1.35)}
+html.flip-home .site-footer{scroll-snap-align:start}
+@media(max-width:760px){.flip-aside{grid-template-columns:1fr}.flip-dots{right:12px}.flip-page+.flip-page{padding-top:80px}}
+@media(prefers-reduced-motion:reduce){html.flip-home{scroll-snap-type:none}}
