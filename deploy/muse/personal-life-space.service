@@ -1,0 +1,18 @@
+[Unit]
+Description=Personal life space (isolated)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hatch
+Environment=HOME=/home/hatch
+WorkingDirectory=/home/hatch/workspace/projects/personal-life-space
+ExecStart=/bin/bash /home/hatch/workspace/projects/personal-life-space/deploy/muse/run.sh
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

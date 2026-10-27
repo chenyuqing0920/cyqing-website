@@ -1,20 +1,8 @@
-# ===== 运行时数据 / 密钥：绝不进仓库 =====
-backend/file-drop/files/
-backend/file-drop/data/
-backend/file-drop/logs/
-backend/file-drop/.venv/
-backend/stack/data/
-backend/stack/logs/
-backend/stack/cloudflared
-backend/stack/*.bak-*
-cloudflare-lab/cloudflared-proxy
-cloudflare-lab/edgeprobe
-cloudflare-lab/logs/
-cloudflare-lab/cloudflared-src/
-# ===== 通用 =====
-__pycache__/
-.venv/
-test-results/
-*.pyc
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+data/
+uploads/
 *.log
-.DS_Store

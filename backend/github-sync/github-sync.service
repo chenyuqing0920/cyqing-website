@@ -1,9 +1,0 @@
-[Unit]
-Description=Sync cyqing-tools repo with GitHub
-After=network-online.target
-
-[Service]
-Type=oneshot
-EnvironmentFile=-/etc/environment.d/80-hatch-egress.conf
-Environment=HOME=/home/hatch
-ExecStart=/home/hatch/workspace/services/github-sync/sync.sh

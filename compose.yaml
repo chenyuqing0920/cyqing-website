@@ -1,0 +1,22 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        BASE_PATH: ${BASE_PATH:-}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: file:/app/data/space.db
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL in .env}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      LEGACY_BASE_URL: ${LEGACY_BASE_URL:-}
+      UPLOAD_DIR: /app/data/uploads
+      BASE_PATH: ${BASE_PATH:-}
+    ports:
+      - "127.0.0.1:${APP_PORT:-3070}:3070"
+    volumes:
+      - state:/app/data
+volumes:
+  state:

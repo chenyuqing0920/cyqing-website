@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Session {
+  id        String   @id
+  data      String
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+
+model TravelRecord {
+  id        String        @id @default(cuid())
+  title     String
+  country   String        @default("")
+  province  String        @default("")
+  city      String        @default("")
+  place     String        @default("")
+  startDate DateTime?
+  endDate   DateTime?
+  status    String        @default("想去")
+  story     String        @default("")
+  tags      Json          @default("[]")
+  latitude  Float?
+  longitude Float?
+  isPublic  Boolean       @default(false)
+  photos    TravelPhoto[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  @@index([isPublic, startDate])
+  @@index([status, city])
+}
+
+model TravelPhoto {
+  id        String       @id @default(cuid())
+  travelId  String
+  assetId   String
+  position  Int          @default(0)
+  travel    TravelRecord @relation(fields: [travelId], references: [id], onDelete: Cascade)
+  asset     MediaAsset   @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  @@unique([travelId, assetId])
+  @@index([travelId, position])
+}
+
+model AnimeRecord {
+  id           String   @id @default(cuid())
+  title        String
+  coverId      String?
+  cover        MediaAsset? @relation("AnimeCover", fields: [coverId], references: [id], onDelete: SetNull)
+  tags         Json     @default("[]")
+  totalEpisodes Int     @default(0)
+  currentEpisode Int    @default(0)
+  status       String   @default("想看")
+  startDate    DateTime?
+  endDate      DateTime?
+  score        Int?
+  review       String   @default("")
+  isPublic     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@index([isPublic, updatedAt])
+  @@index([status, score])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @default("")
+  tags      Json     @default("[]")
+  isPublic  Boolean  @default(false)
+  isDraft   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([isPublic, isDraft, updatedAt])
+}
+
+model NoteDraft {
+  key       String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Todo {
+  id        String   @id @default(cuid())
+  title     String
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Countdown {
+  id        String   @id @default(cuid())
+  title     String
+  targetDate DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  category  String   @default("未分类")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SiteConfig {
+  id          String   @id @default("site")
+  title       String   @default("我的数字空间")
+  subtitle    String   @default("记录生活，也收藏每一个闪光的瞬间")
+  bio         String   @default("欢迎来到我的小小世界。")
+  heroImageId String?
+  heroImage   MediaAsset? @relation("HeroImage", fields: [heroImageId], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  filename  String   @unique
+  originalName String
+  mime      String
+  size      Int
+  width     Int
+  height    Int
+  createdAt DateTime @default(now())
+  travelPhotos TravelPhoto[]
+  animeCovers AnimeRecord[] @relation("AnimeCover")
+  heroFor SiteConfig[] @relation("HeroImage")
+}
