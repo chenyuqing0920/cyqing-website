@@ -1,0 +1,47 @@
+{
+  "name": "personal-digital-space",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"node --watch server/index.js\" \"vite --host 127.0.0.1\"",
+    "start": "node server/index.js",
+    "build": "vite build",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "node scripts/seed.js",
+    "admin:create": "node scripts/admin.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.2",
+    "bcryptjs": "3.0.3",
+    "dompurify": "3.4.17",
+    "dotenv": "16.6.1",
+    "express": "5.1.0",
+    "express-rate-limit": "8.7.1",
+    "express-session": "1.18.2",
+    "helmet": "8.1.0",
+    "leaflet": "1.9.4",
+    "lucide-react": "0.468.0",
+    "marked": "15.0.12",
+    "multer": "2.5.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "react-router-dom": "7.18.4",
+    "sharp": "0.35.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "4.7.0",
+    "concurrently": "9.2.5",
+    "prisma": "6.19.2",
+    "vite": "6.4.5"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2",
+      "effect": "3.22.4"
+    }
+  }
+}
