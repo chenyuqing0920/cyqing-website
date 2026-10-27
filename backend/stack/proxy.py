@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""前置分流代理（标准库实现）：同一公网域名下的工具门户分流。
-  /                   -> 门户主页 portal.html（代理直出）
+"""前置分流代理（标准库实现）：同一公网域名下的分流。
+  / 或 /portal-assets/* -> 302 到新站 /life/（旧门户已退役）
+  /life 或 /life/*    -> 新站 127.0.0.1:7870（完整路径转发，并覆盖
+                         X-Forwarded-Proto: https 以便 Secure Cookie）
   /files 或 /files/*  -> 文件小站 127.0.0.1:7864
   /douyin 或 /douyin/*-> 随手存 127.0.0.1:7863（转发时剥掉 /douyin 前缀）
   其余（/api、/static 等随手存原生路径）-> 随手存 127.0.0.1:7863
@@ -20,6 +22,7 @@ PORTAL_ASSETS = {"style.css": "text/css; charset=utf-8",
 
 FILES_PORT = int(os.environ.get("PROXY_FILES_PORT", "7864"))
 DOUYIN_PORT = int(os.environ.get("PROXY_DOUYIN_PORT", "7863"))
+LIFE_PORT = int(os.environ.get("PROXY_LIFE_PORT", "7870"))
 LISTEN_PORT = int(os.environ.get("PROXY_PORT", "7860"))
 
 HOP = {"connection", "keep-alive", "proxy-connection", "te", "trailer",
@@ -81,34 +84,28 @@ class Handler(BaseHTTPRequestHandler):
     def _forward(self):
         parts = urlsplit(self.path)
         p = parts.path
-        if self.command in ("GET", "HEAD") and p.startswith("/portal-assets/"):
-            name = p[len("/portal-assets/"):]
-            if name not in PORTAL_ASSETS:
-                self.send_error(404)
-                return
-            try:
-                data = (PORTAL_FILE.parent / name).read_bytes()
-            except OSError:
-                self.send_error(404)
-                return
-            self.send_response(200)
-            self.send_header("Content-Type", PORTAL_ASSETS[name])
-            self.send_header("Cache-Control", "no-cache")
-            self.send_header("Content-Length", str(len(data)))
+        # 旧门户已退役（2026-10-27）：首页与旧门户静态资源一律 302 到新站。
+        # 302 而不用 301，避免浏览器永久缓存， rollback 只需改回路由。
+        if self.command in ("GET", "HEAD") and (p == "/" or p.startswith("/portal-assets/")):
+            query = ("?" + parts.query) if parts.query else ""
+            self.send_response(302)
+            self.send_header("Location", "/life/" + query)
+            self.send_header("Content-Length", "0")
             self.end_headers()
-            if self.command != "HEAD":
-                self.wfile.write(data)
-            return
-        if self.command in ("GET", "HEAD") and p == "/":
-            self._serve_portal()
             return
         query = ("?" + parts.query) if parts.query else ""
+        force_https = False
         if p == "/files" or p.startswith("/files/"):
             port = FILES_PORT
             out_path = p + query
         elif p == "/douyin" or p.startswith("/douyin/"):
             port = DOUYIN_PORT
             out_path = (p[len("/douyin"):] or "/") + query
+        elif p == "/life" or p.startswith("/life/"):
+            # 新站：完整路径转发（不剥 /life 前缀，后端按 BASE_PATH=/life 挂载）。
+            port = LIFE_PORT
+            out_path = p + query
+            force_https = True
         else:
             port = DOUYIN_PORT
             out_path = p + query
@@ -121,8 +118,12 @@ class Handler(BaseHTTPRequestHandler):
         original_host = self.headers.get("Host")
         headers["Host"] = original_host if original_host else f"127.0.0.1:{port}"
         headers["X-Forwarded-For"] = self.client_address[0]
-        # 不传 X-Forwarded-Proto：后端按 http 处理与现网直连时一致，
+        # 不传 X-Forwarded-Proto：随手存后端按 http 处理与现网直连时一致，
         # 避免会话 Cookie 被标记 Secure 而在内部 http 跳上丢失。
+        # 唯独新站例外：公网唯一入口是 Cloudflare https，覆盖（而非透传）
+        # 为 https，后端据此发 Secure Cookie；覆盖可防客户端伪造该头。
+        if force_https:
+            headers["X-Forwarded-Proto"] = "https"
 
         te = (self.headers.get("Transfer-Encoding") or "").lower()
         cl = self.headers.get("Content-Length")
