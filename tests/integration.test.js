@@ -65,3 +65,22 @@ test('authentication, CSRF, privacy, persistence, image integrity and backup res
   assert.equal((await (await call('/api/records/travel/'+travelId,{auth:true})).json()).city,'Test City');
   assert.equal((await call('/api/records/note/'+privateNote.id)).status,404);
 });
+
+test('session cookie path follows BASE_PATH and logout clears it',async()=>{
+  const expectedPath=prefix?'/'+prefix.replace(/^\/+|\/+$/g,''):'/';
+  const pathPattern=new RegExp('Path='+expectedPath+'(?:;|$)');
+  let res=await call('/api/auth/login',{method:'POST',body:{username,password}});
+  assert.equal(res.status,200);
+  const setCookie=res.headers.get('set-cookie')||'';
+  assert.match(setCookie,pathPattern);
+  if(secure)assert.match(setCookie,/Secure/);
+  const myCookie=setCookie.split(';')[0];
+  const myCsrf=(await res.json()).csrf;
+  res=await fetch(base+prefix+'/api/auth/logout',{method:'POST',headers:{...origin,Cookie:myCookie,'X-CSRF-Token':myCsrf}});
+  assert.equal(res.status,200);
+  const cleared=res.headers.get('set-cookie')||'';
+  assert.match(cleared,/space\.sid=;/);
+  assert.match(cleared,pathPattern);
+  res=await fetch(base+prefix+'/api/auth/session',{headers:{Cookie:myCookie}});
+  assert.equal((await res.json()).authenticated,false);
+});

@@ -5,7 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=hatch
+# 实际运行用户为 root（本环境不存在 hatch 用户）；HOME 指向工作区所在位置。
+User=root
 Environment=HOME=/home/hatch
 WorkingDirectory=/home/hatch/workspace/projects/personal-life-space
 ExecStart=/bin/bash /home/hatch/workspace/projects/personal-life-space/deploy/muse/run.sh

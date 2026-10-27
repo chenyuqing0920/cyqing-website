@@ -21,6 +21,8 @@ bash deploy/muse/run.sh
 
 本机验证 `http://127.0.0.1:7870/life/` 和 `/life/api/health`，并测试登录、私密数据、上传、备份恢复、服务重启、子路径静态资源。初始阶段 `PUBLIC_BASE_URL=http://127.0.0.1:7870`、`COOKIE_SECURE=false`，不可将此配置暴露到公网。
 
+Muse 环境说明：若 `npm ci` 在 `@prisma/engines` 的 postinstall 处以 ECONNRESET 失败，是 Node 的下载请求被出口代理重置（同地址用 curl 可通）。不要反复全量重装：先 `npm ci --ignore-scripts`，再用 curl（支持断点续传）从 Prisma 官方 binaries 主机拉取与当前 Prisma 版本对应的引擎 `.gz`，解压到 `node_modules/@prisma/engines/`（CLI 的 query engine 与 schema engine）和 `node_modules/prisma/`（generate 用的 client engine），然后再跑 `prisma generate`、`migrate deploy` 和构建。引擎版本与系统目标以本机 `node_modules/@prisma/engines` 的版本和 get-platform 输出为准，不要照抄旧值。
+
 ## 独立 systemd 服务
 
 确认系统支持且拥有安装权限后，仅安装此新单元；其源文件保留在仓库中，以便系统目录被重置时恢复：
@@ -37,7 +39,7 @@ journalctl -u personal-life-space.service -n 100 --no-pager
 journalctl -u personal-life-space.service -f
 ```
 
-此单元假定用户名为 `hatch`、源码路径如上。若当前环境不同，先调整本单元副本，不改已有单元。`/etc` 如果在 VM 更换时被重置，单元可能消失；必须由实际平台支持的开机恢复机制重新安装，并经过 VM 重建实测后才能声称自动恢复。数据文件持久性同样需要实际验证，不能仅凭位置保证。
+此单元使用实际运行用户 `root`（本环境不存在 hatch 用户），HOME=/home/hatch 指向工作区所在位置，源码路径如上。若当前环境不同，先调整本单元副本，不改已有单元。`/etc` 如果在 VM 更换时被重置，单元可能消失；此时手动运行 `bash deploy/muse/recover.sh` 重新安装并启动（不碰现有服务及其自动化），恢复脚本本身不声称自动恢复，VM 重建后的自动恢复能力未经实测。数据文件持久性同样需要实际验证，不能仅凭位置保证。
 
 ## 正式域名接入
 
@@ -45,4 +47,4 @@ journalctl -u personal-life-space.service -f
 
 ## 更新与回滚
 
-先备份状态目录中的数据库和上传文件并验证恢复；检查 Git 工作区干净，再 `git fetch` 和 `git merge --ff-only origin/main`。运行 `bash deploy/muse/prepare.sh` 安装锁定依赖、执行迁移和构建，然后 `sudo systemctl restart personal-life-space.service` 并检查日志与健康接口。避免自动提交、自动合并冲突或清理数据。若数据库迁移无法逆向，回滚代码前先恢复匹配版本的数据库备份。
+先备份状态目录中的数据库和上传文件并验证恢复；检查 Git 工作区干净，再 `git fetch` 和 `git merge --ff-only origin/personal-life-space`（不要拉 main，那是旧项目）。运行 `bash deploy/muse/prepare.sh` 安装锁定依赖、执行迁移和构建，然后 `sudo systemctl restart personal-life-space.service` 并检查日志与健康接口。避免自动提交、自动合并冲突或清理数据。若数据库迁移无法逆向，回滚代码前先恢复匹配版本的数据库备份。

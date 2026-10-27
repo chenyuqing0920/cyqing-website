@@ -5,6 +5,11 @@ import { rateLimit } from 'express-rate-limit';
 import { db } from './db.js';
 
 export const auth=Router();
+// Must match the session cookie path in server/index.js: BASE_PATH as
+// /life (or / at root). Logout clears with the same path, otherwise the
+// browser keeps the session cookie and logout silently fails.
+const authBasePath=(process.env.BASE_PATH||'').replace(/^\/+|\/+$/g,'');
+const cookiePath=authBasePath?'/'+authBasePath:'/';
 export const requireAuth=(req,res,next)=>req.session?.userId?next():res.status(401).json({error:'请先登录'});
 const limiter=rateLimit({windowMs:15*60*1000,limit:12,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'尝试次数过多，请稍后再试'}});
 auth.get('/session',(req,res)=>res.json({authenticated:!!req.session.userId,csrf:req.session.userId?req.session.csrf:null}));
@@ -16,7 +21,7 @@ auth.post('/login',limiter,async(req,res,next)=>{try{
   if(!user||!ok)return res.status(401).json({error:'用户名或密码不正确'});
   req.session.regenerate(err=>{if(err)return next(err);req.session.userId=user.id;req.session.csrf=crypto.randomBytes(32).toString('hex');req.session.save(err2=>err2?next(err2):res.json({ok:true,csrf:req.session.csrf}));});
 }catch(e){next(e);}});
-auth.post('/logout',requireAuth,(req,res,next)=>req.session.destroy(err=>{if(err)return next(err);res.clearCookie('space.sid',{path:'/'});res.json({ok:true});}));
+auth.post('/logout',requireAuth,(req,res,next)=>req.session.destroy(err=>{if(err)return next(err);res.clearCookie('space.sid',{path:cookiePath});res.json({ok:true});}));
 export function verifyCsrf(req,res,next){
   if(['GET','HEAD','OPTIONS'].includes(req.method))return next();
   const origin=req.get('origin');
