@@ -438,3 +438,240 @@ html.flip-home .site-footer{scroll-snap-align:start}
   .app-shell.shell-interior .page-heading,
   .app-shell.shell-admin .page-heading{padding:20px 18px !important;border-radius:14px !important}
 }
+
+html.flip-home,html.flip-home body{background:#101a31!important;color:#e9eef8}
+/* ========== Mio2 home content below hero (hero / water02 untouched) ========== */
+.app-shell.shell-home{
+  --mio-glass:rgba(18,28,48,.55);
+  --mio-glass-strong:rgba(10,16,30,.82);
+  --mio-card:rgba(24,32,52,.58);
+  --mio-card-hover:rgba(30,40,64,.72);
+  --mio-border:rgba(255,255,255,.14);
+  --mio-border-soft:rgba(255,255,255,.08);
+  --mio-text:#e9eef8;
+  --mio-muted:#a0adc2;
+  --mio-accent:#6fd0e4;
+  --mio-pink:#e5a0b9;
+  --mio-blur:blur(14px) saturate(160%);
+  position:relative;
+  isolation:isolate;
+  background:#101a31;
+  color:var(--mio-text);
+}
+/* Fixed atmosphere behind home content; hero paints its own water02 above it */
+.app-shell.shell-home::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(180deg,rgba(10,18,36,.55) 0%,rgba(10,18,36,.35) 35%,rgba(8,12,24,.78) 78%,rgba(6,10,18,.94) 100%),
+    linear-gradient(90deg,rgba(16,26,49,.65),rgba(20,34,58,.35)),
+    url("/water02.jpg");
+  background-position:center;
+  background-size:cover;
+  background-repeat:no-repeat;
+  filter:saturate(.82);
+}
+.app-shell.shell-home>.top-nav,
+.app-shell.shell-home>.site-footer,
+.app-shell.shell-home>.quick-float,
+.app-shell.shell-home>.toast,
+.app-shell.shell-home>.modal-backdrop,
+.app-shell.shell-home>div:not(.page-atmosphere){
+  position:relative;
+  z-index:1;
+}
+.app-shell.shell-home>.top-nav{z-index:100}
+.app-shell.shell-home>.quick-float{z-index:90}
+.app-shell.shell-home>.toast{z-index:400}
+.app-shell.shell-home>.modal-backdrop{z-index:300}
+
+/* Scrolled sticky nav — match interior glass (do not change over-hero at top) */
+.app-shell.shell-home>.top-nav.over-hero.scrolled{
+  position:fixed;
+  background:var(--mio-glass-strong);
+  backdrop-filter:var(--mio-blur);
+  -webkit-backdrop-filter:var(--mio-blur);
+  border-bottom:1px solid var(--mio-border);
+  box-shadow:0 10px 32px rgba(0,0,0,.38);
+}
+.app-shell.shell-home .nav-links a:hover,
+.app-shell.shell-home .nav-links a.active{
+  background:rgba(111,208,228,.14);
+  color:#fff;
+}
+.app-shell.shell-home .brand-mark{color:var(--mio-accent)}
+
+/* Flip pages below hero: dark continuum, not light gray */
+.app-shell.shell-home .flip-page+.flip-page{
+  background:transparent;
+  color:var(--mio-text);
+}
+.app-shell.shell-home .home-content{color:var(--mio-text)}
+
+/* Intro strip */
+.app-shell.shell-home .intro-strip{color:var(--mio-muted)}
+.app-shell.shell-home .intro-strip>span:first-child{color:var(--mio-pink)}
+.app-shell.shell-home .intro-strip p b{color:#f0f4fb}
+.app-shell.shell-home .intro-strip .line{background:var(--mio-border)}
+.app-shell.shell-home .intro-strip small{color:var(--mio-muted)}
+
+/* About banner — keep blue-grey feel, deepen glass edge */
+.app-shell.shell-home .about-banner{
+  background:linear-gradient(125deg,rgba(28,44,72,.88),rgba(72,78,110,.72) 60%,rgba(120,100,130,.55));
+  border:1px solid var(--mio-border);
+  box-shadow:0 16px 40px rgba(0,0,0,.32);
+  backdrop-filter:var(--mio-blur);
+  -webkit-backdrop-filter:var(--mio-blur);
+}
+
+/* Section titles as glass bands */
+.app-shell.shell-home .section-title{
+  padding:14px 18px;
+  border-radius:16px;
+  background:var(--mio-card);
+  border:1px solid var(--mio-border);
+  backdrop-filter:var(--mio-blur);
+  -webkit-backdrop-filter:var(--mio-blur);
+  box-shadow:0 12px 36px rgba(0,0,0,.28);
+  margin:28px 0 18px;
+  color:var(--mio-text);
+}
+.app-shell.shell-home .section-title span{color:var(--mio-accent)}
+.app-shell.shell-home .section-title h2{color:#f0f4fb}
+.app-shell.shell-home .section-title h2 i{color:var(--mio-pink)}
+.app-shell.shell-home .section-title p{color:var(--mio-muted)}
+.app-shell.shell-home .section-title>a{color:var(--mio-pink)}
+
+/* Content cards — same dark glass as interior */
+.app-shell.shell-home .trip-card,
+.app-shell.shell-home .anime-card,
+.app-shell.shell-home .note-card,
+.app-shell.shell-home .side-card,
+.app-shell.shell-home .empty{
+  background:var(--mio-card) !important;
+  backdrop-filter:var(--mio-blur) !important;
+  -webkit-backdrop-filter:var(--mio-blur) !important;
+  border:1px solid var(--mio-border) !important;
+  box-shadow:0 12px 36px rgba(0,0,0,.28) !important;
+  color:var(--mio-text) !important;
+}
+.app-shell.shell-home .trip-card:hover,
+.app-shell.shell-home .anime-card:hover,
+.app-shell.shell-home .note-card:hover,
+.app-shell.shell-home .side-card:hover{
+  background:var(--mio-card-hover) !important;
+  border-color:rgba(111,208,228,.28) !important;
+  box-shadow:0 18px 44px rgba(0,0,0,.36) !important;
+}
+.app-shell.shell-home .trip-body h3,
+.app-shell.shell-home .anime-body h3,
+.app-shell.shell-home .note-card h3,
+.app-shell.shell-home .side-title,
+.app-shell.shell-home .profile h3,
+.app-shell.shell-home .empty h3{color:#f0f4fb !important}
+.app-shell.shell-home .trip-body p,
+.app-shell.shell-home .note-card>p,
+.app-shell.shell-home .anime-body p,
+.app-shell.shell-home .profile p,
+.app-shell.shell-home .empty p,
+.app-shell.shell-home .card-bottom,
+.app-shell.shell-home .progress-label,
+.app-shell.shell-home .aside-link,
+.app-shell.shell-home .muted{color:var(--mio-muted) !important}
+.app-shell.shell-home .micro,
+.app-shell.shell-home .note-star,
+.app-shell.shell-home .side-title span,
+.app-shell.shell-home .progress-label b{color:var(--mio-pink) !important}
+.app-shell.shell-home .badge{
+  background:rgba(16,24,40,.7) !important;
+  color:#f0d4e0 !important;
+  border:1px solid var(--mio-border-soft);
+}
+.app-shell.shell-home .note-card time{color:var(--mio-muted)}
+.app-shell.shell-home .tags span{
+  background:rgba(111,208,228,.12) !important;
+  color:var(--mio-accent) !important;
+  border:1px solid rgba(111,208,228,.22);
+}
+.app-shell.shell-home .progress{background:rgba(255,255,255,.1) !important}
+.app-shell.shell-home .progress i{background:linear-gradient(90deg,var(--mio-accent),var(--mio-pink)) !important}
+.app-shell.shell-home .empty{border-style:dashed !important;border-color:rgba(229,160,185,.35) !important}
+.app-shell.shell-home .empty>span{color:var(--mio-pink) !important}
+
+/* Profile / aside */
+.app-shell.shell-home .profile-cover{
+  background:linear-gradient(130deg,rgba(80,110,150,.55),rgba(180,120,150,.45));
+}
+.app-shell.shell-home .avatar{
+  background:rgba(40,32,52,.85);
+  color:var(--mio-pink);
+  border-color:rgba(255,255,255,.2);
+}
+.app-shell.shell-home .profile-tags{color:var(--mio-pink)}
+.app-shell.shell-home .soft-button{
+  background:rgba(229,160,185,.14);
+  color:#f0d4e0;
+  border:1px solid rgba(229,160,185,.28);
+}
+.app-shell.shell-home .aside-link>span{
+  background:rgba(111,208,228,.14);
+  color:var(--mio-accent);
+}
+.app-shell.shell-home .aside-link svg{color:rgba(255,255,255,.35)}
+.app-shell.shell-home .timeline-mini>div{border-left-color:var(--mio-border-soft)}
+.app-shell.shell-home .timeline-mini>div>span{background:var(--mio-pink)}
+.app-shell.shell-home .timeline-mini time,
+.app-shell.shell-home .timeline-mini small{color:var(--mio-pink)}
+.app-shell.shell-home .timeline-mini p{color:var(--mio-muted)}
+.app-shell.shell-home .aside-note{
+  background:linear-gradient(145deg,rgba(36,32,58,.72),rgba(72,48,70,.55));
+  border:1px solid var(--mio-border);
+  box-shadow:0 12px 36px rgba(0,0,0,.28);
+  backdrop-filter:var(--mio-blur);
+  -webkit-backdrop-filter:var(--mio-blur);
+}
+.app-shell.shell-home .aside-note span{color:var(--mio-accent)}
+.app-shell.shell-home .aside-note p{color:#f0f4fb}
+
+/* Flip dots + footer */
+.app-shell.shell-home .flip-dots button{background:rgba(255,255,255,.28)}
+.app-shell.shell-home .flip-dots button.active{background:var(--mio-pink)}
+.app-shell.shell-home .site-footer{
+  background:linear-gradient(180deg,transparent,rgba(8,12,24,.85) 35%,#070b14);
+  border-top:1px solid var(--mio-border-soft);
+  color:#c5cedd;
+  margin-top:0;
+  padding-top:90px;
+}
+.app-shell.shell-home .site-footer p{color:#d7deea}
+.app-shell.shell-home .site-footer small{color:#9aa7bb}
+.app-shell.shell-home .footer-mark{color:var(--mio-pink)}
+
+/* Home modal readability if opened from home */
+.app-shell.shell-home .modal{
+  background:rgba(22,30,48,.92);
+  backdrop-filter:blur(18px) saturate(150%);
+  border:1px solid var(--mio-border);
+  color:var(--mio-text);
+}
+.app-shell.shell-home .modal h2{color:#f4f7fc}
+.app-shell.shell-home .modal .muted,
+.app-shell.shell-home .modal p{color:var(--mio-muted)}
+.app-shell.shell-home .modal input,
+.app-shell.shell-home .modal textarea{
+  background:rgba(8,14,28,.5);
+  border-color:var(--mio-border);
+  color:var(--mio-text);
+}
+.app-shell.shell-home .close-modal{
+  background:rgba(255,255,255,.08);
+  color:var(--mio-muted);
+}
+.app-shell.shell-home .alert{
+  background:rgba(162,68,87,.25);
+  color:#ffc2cc;
+  border:1px solid rgba(255,180,190,.25);
+}
