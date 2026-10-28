@@ -137,3 +137,304 @@ html.flip-home .site-footer{scroll-snap-align:start}
 .file-actions{display:flex;gap:8px;align-items:center;flex:none}
 .file-actions .secondary{min-height:36px;padding:8px 12px;font-size:12px}
 @media(max-width:760px){.files-layout{grid-template-columns:1fr}.job-video,.preview-video{max-height:240px}}
+
+/* ========== Mio2 / Butterfly-inspired interior (homepage hero untouched) ========== */
+.app-shell.shell-interior,
+.app-shell.shell-admin{
+  --mio-glass:rgba(18,28,48,.55);
+  --mio-glass-strong:rgba(10,16,30,.82);
+  --mio-card:rgba(24,32,52,.58);
+  --mio-card-hover:rgba(30,40,64,.72);
+  --mio-border:rgba(255,255,255,.14);
+  --mio-border-soft:rgba(255,255,255,.08);
+  --mio-text:#e9eef8;
+  --mio-muted:#a0adc2;
+  --mio-accent:#6fd0e4;
+  --mio-pink:#e5a0b9;
+  --mio-blur:blur(14px) saturate(160%);
+  color:var(--mio-text);
+}
+
+/* Sticky translucent nav — deepen on scroll (Butterfly nav-fixed feel) */
+.app-shell.shell-interior>.top-nav.interior,
+.app-shell.shell-admin>.top-nav.interior{
+  position:sticky;
+  top:0;
+  background:var(--mio-glass);
+  backdrop-filter:var(--mio-blur);
+  -webkit-backdrop-filter:var(--mio-blur);
+  border-bottom:1px solid var(--mio-border);
+  box-shadow:none;
+}
+.app-shell.shell-interior>.top-nav.interior.scrolled,
+.app-shell.shell-admin>.top-nav.interior.scrolled{
+  position:sticky;
+  background:var(--mio-glass-strong);
+  box-shadow:0 10px 32px rgba(0,0,0,.38);
+  border-bottom-color:rgba(255,255,255,.18);
+}
+.app-shell.shell-interior .nav-links a:hover,
+.app-shell.shell-interior .nav-links a.active,
+.app-shell.shell-admin .nav-links a:hover,
+.app-shell.shell-admin .nav-links a.active{
+  background:rgba(111,208,228,.14);
+  color:#fff;
+}
+.app-shell.shell-interior .brand-mark,
+.app-shell.shell-admin .brand-mark{color:var(--mio-accent)}
+
+/* Deeper fixed atmosphere so content floats like Butterfly cards over #web_bg */
+.app-shell.shell-interior .page-atmosphere .atm-hero-overlay{
+  background:
+    linear-gradient(180deg,rgba(10,18,36,.72) 0%,rgba(10,18,36,.28) 28%,rgba(10,18,36,.55) 70%,rgba(8,12,24,.92) 100%),
+    linear-gradient(90deg,rgba(12,20,40,.55),transparent 55%);
+}
+
+/* Interior title band */
+.app-shell.shell-interior .page-heading,
+.app-shell.shell-admin .page-heading{
+  padding:28px 30px !important;
+  border-radius:18px !important;
+  background:linear-gradient(135deg,rgba(20,30,52,.72),rgba(36,28,48,.55)) !important;
+  border:1px solid var(--mio-border) !important;
+  box-shadow:0 16px 40px rgba(0,0,0,.28) !important;
+  backdrop-filter:var(--mio-blur) !important;
+  -webkit-backdrop-filter:var(--mio-blur) !important;
+  color:var(--mio-text) !important;
+}
+.app-shell.shell-interior .page-heading h1,
+.app-shell.shell-admin .page-heading h1{
+  background:none !important;
+  -webkit-background-clip:unset !important;
+  background-clip:unset !important;
+  color:#f4f7fc !important;
+  text-shadow:0 2px 18px rgba(0,0,0,.35);
+}
+.app-shell.shell-interior .page-heading p:not(.eyebrow),
+.app-shell.shell-admin .page-heading p:not(.eyebrow){color:var(--mio-muted) !important}
+.app-shell.shell-interior .page-heading .eyebrow,
+.app-shell.shell-admin .page-heading .eyebrow{
+  color:var(--mio-accent) !important;
+  letter-spacing:2.5px;
+}
+.app-shell.shell-interior .heading-icon,
+.app-shell.shell-admin .heading-icon{
+  background:linear-gradient(145deg,rgba(111,208,228,.22),rgba(229,160,185,.2)) !important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 8px 20px rgba(0,0,0,.2) !important;
+  color:var(--mio-accent);
+}
+
+/* Shared glass cards (Butterfly card-widget / recent-post-item) */
+.app-shell.shell-interior .tool-panel,
+.app-shell.shell-interior .trip-card,
+.app-shell.shell-interior .anime-card,
+.app-shell.shell-interior .note-card,
+.app-shell.shell-interior .city-card,
+.app-shell.shell-interior .job-card,
+.app-shell.shell-interior .empty,
+.app-shell.shell-interior .filter-bar,
+.app-shell.shell-interior .anime-stats,
+.app-shell.shell-interior .section-title,
+.app-shell.shell-interior .city-intro,
+.app-shell.shell-interior .city-detail-heading,
+.app-shell.shell-interior .legacy-tools,
+.app-shell.shell-interior .login-hint,
+.app-shell.shell-interior .connection-chip,
+.app-shell.shell-interior .storage-note,
+.app-shell.shell-interior .drop-zone{
+  background:var(--mio-card) !important;
+  backdrop-filter:var(--mio-blur) !important;
+  -webkit-backdrop-filter:var(--mio-blur) !important;
+  border:1px solid var(--mio-border) !important;
+  box-shadow:0 12px 36px rgba(0,0,0,.28) !important;
+  color:var(--mio-text) !important;
+}
+.app-shell.shell-interior .trip-card:hover,
+.app-shell.shell-interior .anime-card:hover,
+.app-shell.shell-interior .note-card:hover,
+.app-shell.shell-interior .city-card:hover,
+.app-shell.shell-interior .job-card:hover,
+.app-shell.shell-interior .tool-panel:hover{
+  background:var(--mio-card-hover) !important;
+  border-color:rgba(111,208,228,.28) !important;
+  transform:translateY(-3px);
+  box-shadow:0 18px 44px rgba(0,0,0,.36) !important;
+}
+
+/* Card inner text / chrome on dark glass */
+.app-shell.shell-interior .trip-body h3,
+.app-shell.shell-interior .anime-body h3,
+.app-shell.shell-interior .note-card h3,
+.app-shell.shell-interior .tool-title h2,
+.app-shell.shell-interior .tool-panel h2,
+.app-shell.shell-interior .tool-panel h3,
+.app-shell.shell-interior .section-title h2,
+.app-shell.shell-interior .city-intro h2,
+.app-shell.shell-interior .storage-note h3,
+.app-shell.shell-interior .file-name b,
+.app-shell.shell-interior .job-top h3,
+.app-shell.shell-interior .empty h3{
+  color:#f0f4fb !important;
+}
+.app-shell.shell-interior .trip-body p,
+.app-shell.shell-interior .note-card>p,
+.app-shell.shell-interior .anime-body p,
+.app-shell.shell-interior .tool-title p,
+.app-shell.shell-interior .tool-panel p,
+.app-shell.shell-interior .section-title p,
+.app-shell.shell-interior .muted,
+.app-shell.shell-interior .empty p,
+.app-shell.shell-interior .storage-note p,
+.app-shell.shell-interior .file-name small,
+.app-shell.shell-interior .douyin-submit label,
+.app-shell.shell-interior .card-bottom,
+.app-shell.shell-interior .progress-label,
+.app-shell.shell-interior .countdowns small,
+.app-shell.shell-interior .bookmark-list>a,
+.app-shell.shell-interior .todo-list>div>span{
+  color:var(--mio-muted) !important;
+}
+.app-shell.shell-interior .micro,
+.app-shell.shell-interior .tool-page .tool-back a,
+.app-shell.shell-interior .bookmark-list b,
+.app-shell.shell-interior .countdowns b,
+.app-shell.shell-interior .progress-label b,
+.app-shell.shell-interior .choice-result{
+  color:var(--mio-pink) !important;
+}
+.app-shell.shell-interior .tool-title>span,
+.app-shell.shell-interior .bookmark-list>a>span{
+  background:rgba(111,208,228,.16) !important;
+  color:var(--mio-accent) !important;
+}
+.app-shell.shell-interior .section-title span,
+.app-shell.shell-interior .legacy-tools>span{color:var(--mio-accent) !important}
+.app-shell.shell-interior .badge{
+  background:rgba(16,24,40,.7) !important;
+  color:#f0d4e0 !important;
+  border:1px solid var(--mio-border-soft);
+}
+.app-shell.shell-interior .anime-stats div{
+  background:rgba(255,255,255,.06) !important;
+  border:1px solid var(--mio-border-soft) !important;
+  box-shadow:none !important;
+  color:var(--mio-text) !important;
+}
+.app-shell.shell-interior .filter-bar input,
+.app-shell.shell-interior .filter-bar select,
+.app-shell.shell-interior .tool-panel input,
+.app-shell.shell-interior .tool-panel textarea,
+.app-shell.shell-interior .tool-panel select,
+.app-shell.shell-interior .douyin-submit textarea{
+  background:rgba(8,14,28,.45) !important;
+  border:1px solid var(--mio-border) !important;
+  color:var(--mio-text) !important;
+}
+.app-shell.shell-interior .filter-bar input::placeholder,
+.app-shell.shell-interior .tool-panel input::placeholder,
+.app-shell.shell-interior .tool-panel textarea::placeholder{
+  color:rgba(160,173,194,.7);
+}
+.app-shell.shell-interior .todo-list>div,
+.app-shell.shell-interior .countdowns>div,
+.app-shell.shell-interior .file-row,
+.app-shell.shell-interior .bookmark-list>a{
+  border-bottom-color:var(--mio-border-soft) !important;
+}
+.app-shell.shell-interior .todo-check{
+  border-color:rgba(255,255,255,.28) !important;
+  background:rgba(255,255,255,.06) !important;
+}
+.app-shell.shell-interior .todo-check.done{
+  background:var(--mio-pink) !important;
+  border-color:var(--mio-pink) !important;
+  color:#fff !important;
+}
+.app-shell.shell-interior .done-text{color:rgba(160,173,194,.65) !important}
+.app-shell.shell-interior .choice-result,
+.app-shell.shell-interior .login-hint{
+  background:rgba(229,160,185,.1) !important;
+}
+.app-shell.shell-interior .legacy-tools{
+  background:linear-gradient(160deg,rgba(24,32,52,.7),rgba(40,28,48,.55)) !important;
+}
+.app-shell.shell-interior .legacy-tools a{
+  background:rgba(255,255,255,.08) !important;
+  color:var(--mio-text) !important;
+  border:1px solid var(--mio-border-soft);
+}
+.app-shell.shell-interior .connection-chip.online{color:#7ddeb0 !important}
+.app-shell.shell-interior .connection-chip.error{
+  color:#ffb0bc !important;
+  background:rgba(162,68,87,.28) !important;
+}
+.app-shell.shell-interior .job-status{
+  background:rgba(111,208,228,.14);
+  color:var(--mio-accent);
+  border:1px solid rgba(111,208,228,.25);
+}
+.app-shell.shell-interior .gallery-tile,
+.app-shell.shell-interior .gallery-placeholder{
+  background:rgba(8,14,28,.4) !important;
+  border:1px solid var(--mio-border-soft);
+  color:var(--mio-muted);
+}
+.app-shell.shell-interior .secondary{
+  background:rgba(255,255,255,.1) !important;
+  color:var(--mio-text) !important;
+  border:1px solid var(--mio-border);
+}
+.app-shell.shell-interior .secondary:hover{background:rgba(255,255,255,.16) !important}
+.app-shell.shell-interior .primary{
+  background:linear-gradient(135deg,#d88faa,#c57a9c) !important;
+  box-shadow:0 8px 22px rgba(200,120,150,.28);
+}
+.app-shell.shell-interior .back-button,
+.app-shell.shell-interior .tool-page .tool-back a{
+  background:rgba(255,255,255,.08) !important;
+  border:1px solid var(--mio-border) !important;
+  backdrop-filter:blur(8px);
+  color:var(--mio-text) !important;
+  border-radius:999px;
+  padding:8px 14px;
+}
+.app-shell.shell-interior .progress{background:rgba(255,255,255,.1) !important}
+.app-shell.shell-interior .progress i{background:linear-gradient(90deg,var(--mio-accent),var(--mio-pink)) !important}
+.app-shell.shell-interior .tags span{
+  background:rgba(111,208,228,.12) !important;
+  color:var(--mio-accent) !important;
+  border:1px solid rgba(111,208,228,.22);
+}
+.app-shell.shell-interior .empty{border-style:dashed !important;border-color:rgba(229,160,185,.35) !important}
+.app-shell.shell-interior .empty>span{color:var(--mio-pink) !important}
+.app-shell.shell-interior .site-footer{
+  background:linear-gradient(180deg,transparent,rgba(8,12,24,.85) 35%,#070b14) !important;
+}
+.app-shell.shell-interior .alert{background:rgba(162,68,87,.25) !important;color:#ffc2cc !important;border:1px solid rgba(255,180,190,.25)}
+
+/* Travel / city specifics */
+.app-shell.shell-interior .city-detail-heading p:last-child,
+.app-shell.shell-interior .city-intro small{color:var(--mio-muted) !important}
+
+/* Modal stays readable over dark shell */
+.app-shell.shell-interior .modal{
+  background:rgba(22,30,48,.92);
+  backdrop-filter:blur(18px) saturate(150%);
+  border:1px solid var(--mio-border);
+  color:var(--mio-text);
+}
+.app-shell.shell-interior .modal h2,
+.app-shell.shell-interior .modal .detail-title{color:#f4f7fc}
+.app-shell.shell-interior .modal .muted,
+.app-shell.shell-interior .modal p{color:var(--mio-muted)}
+.app-shell.shell-interior .modal input,
+.app-shell.shell-interior .modal textarea{
+  background:rgba(8,14,28,.5);
+  border-color:var(--mio-border);
+  color:var(--mio-text);
+}
+
+@media(max-width:760px){
+  .app-shell.shell-interior .page-heading,
+  .app-shell.shell-admin .page-heading{padding:20px 18px !important;border-radius:14px !important}
+}
