@@ -29,3 +29,64 @@ html.flip-home .site-footer{scroll-snap-align:start}
 .city-intro{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:24px 0 18px}.city-intro>span{display:flex;align-items:center;gap:8px;font-weight:700}.city-intro small{color:#778394}.city-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.city-card{position:relative;min-height:250px;overflow:hidden;border:0;border-radius:20px;background:linear-gradient(140deg,#3e797b,#344563);color:#fff;text-align:left;cursor:pointer;padding:0;isolation:isolate;transition:transform .2s,box-shadow .2s}.city-card:nth-child(3n+2){background:linear-gradient(140deg,#ad8a6b,#70586e)}.city-card:nth-child(3n+3){background:linear-gradient(140deg,#5e83a1,#52566d)}.city-card:hover{transform:translateY(-3px);box-shadow:0 12px 30px #253c5425}.city-card:focus-visible{outline:3px solid #649ead;outline-offset:4px}.city-card>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}.city-card-shade{position:absolute;inset:0;background:linear-gradient(0deg,#172b45d9,transparent);z-index:-1}.city-card-copy{padding:26px;display:flex;flex-direction:column;align-items:flex-start;gap:8px}.city-card-copy small{font-size:10px;letter-spacing:2px;opacity:.7}.city-card-copy strong{font-size:32px;letter-spacing:2px;margin:25px 0 4px}.city-card-copy>span{font-size:12px;opacity:.9}.city-card-copy b{font-size:12px;font-weight:500;margin-top:12px}.city-card.new-city{border:1px dashed #a5bbc2;background:#f0f6f5;color:#4c777e;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:13px;text-align:center;padding:20px}.new-city strong{font-size:18px}.new-city>span{font-size:12px;color:#7e969b}.city-detail-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:26px;margin:14px 0 22px;border-radius:20px;background:linear-gradient(115deg,#e7f1ed,#edf0f7)}.city-detail-heading h2{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:30px}.city-detail-heading p:last-child{font-size:13px;color:#75858c}.city-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.city-form{margin-bottom:22px;max-width:660px}.city-form label{display:flex;flex-direction:column;gap:10px;font-weight:600}.spot-search{display:flex;align-items:center;gap:8px;flex:1}.spot-search input{flex:1;min-width:0}.managed-spot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.managed-spot{background:#fff;border:1px solid #e7edf1;border-radius:16px;overflow:hidden}.managed-spot-cover{position:relative;aspect-ratio:1.6;background:linear-gradient(135deg,#e3eeed,#e7e9f1);display:flex;align-items:center;justify-content:center;color:#95a8b2}.managed-spot-cover img{width:100%;height:100%;object-fit:cover}.managed-spot-cover .badge{position:absolute;top:12px;left:12px}.managed-spot-body{padding:18px}.managed-spot-body h3{font-size:18px;margin:0 0 8px;overflow-wrap:anywhere}.managed-spot-body p{font-size:12px;color:#87909b;margin-bottom:16px}.managed-spot-body .row-actions{justify-content:space-between}.spot-editor h2{margin:12px 0}.spot-editor>.muted{margin-bottom:24px}.spot-editor .image-picker{margin:22px 0}.spot-editor .form-field{margin:18px 0}.spot-editor input,.spot-editor select,.city-form input{min-width:0}.spot-editor .editor-fields:disabled{opacity:.7}.public-city-grid{margin-bottom:48px}.travel-cities-page .page-heading .primary{white-space:nowrap}.travel-cities-page .back-button{margin-bottom:20px}.empty .primary{margin-top:16px}.city-form input{width:100%}
 @media(max-width:1100px){.city-grid,.managed-spot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.city-detail-heading{align-items:flex-start;flex-direction:column}.city-actions{justify-content:flex-start}}
 @media(max-width:600px){.city-grid,.managed-spot-grid{grid-template-columns:1fr}.city-card{min-height:220px}.city-intro{align-items:flex-start;flex-direction:column;gap:8px}.city-detail-heading{padding:20px}.city-actions{width:100%}.city-actions .primary{flex:1}.spot-editor .editor-actions{flex-wrap:wrap}.spot-editor .editor-actions button{flex:1;white-space:nowrap}.travel-cities-page .page-heading{align-items:flex-start;gap:16px;flex-direction:column}.admin-filters select{max-width:130px}.spot-editor .form-grid.two{grid-template-columns:1fr}.managed-spot-cover{aspect-ratio:1.75}}
+/* === starlight interior atmosphere === */
+.app-shell.shell-interior,.app-shell.shell-admin{position:relative;isolation:isolate;background:
+  radial-gradient(1200px 520px at 8% -10%,#f3d5e38c,transparent 60%),
+  radial-gradient(900px 480px at 100% 0%,#d9e2f58f,transparent 55%),
+  radial-gradient(700px 420px at 50% 100%,#e7ddf48a,transparent 60%),
+  linear-gradient(180deg,#eef2f7 0%,#f7f5f9 42%,#f3eef6 100%)}
+.page-atmosphere{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.atm-orb{position:absolute;border-radius:50%;filter:blur(28px);opacity:.55}
+.atm-orb-a{width:340px;height:340px;left:-80px;top:12%;background:#f0c4d666}
+.atm-orb-b{width:420px;height:420px;right:-120px;top:38%;background:#c9d7f055}
+.atm-orb-c{width:300px;height:300px;left:35%;bottom:-60px;background:#ddd0f04d}
+.atm-stars{position:absolute;inset:0;opacity:.7;background-image:
+  radial-gradient(1.5px 1.5px at 12% 18%,#ffffffcc,transparent),
+  radial-gradient(1.5px 1.5px at 28% 42%,#ffd9e6aa,transparent),
+  radial-gradient(1.2px 1.2px at 63% 22%,#ffffffb3,transparent),
+  radial-gradient(1.8px 1.8px at 81% 36%,#e7d4ff99,transparent),
+  radial-gradient(1.2px 1.2px at 45% 68%,#ffffffa6,transparent),
+  radial-gradient(1.5px 1.5px at 72% 78%,#ffd0df99,transparent),
+  radial-gradient(1.2px 1.2px at 18% 82%,#dce6ff99,transparent),
+  radial-gradient(1px 1px at 92% 12%,#ffffff99,transparent),
+  radial-gradient(1.4px 1.4px at 54% 12%,#ffdceb88,transparent),
+  radial-gradient(1px 1px at 37% 55%,#ffffff88,transparent);background-size:100% 100%}
+.atm-grain{position:absolute;inset:0;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");background-size:180px 180px;mix-blend-mode:soft-light}
+.app-shell.shell-interior>.page-wrap,.app-shell.shell-admin>.page-wrap,.app-shell.shell-interior>.admin-layout,.app-shell.shell-admin>.admin-layout,.app-shell.shell-interior>.site-footer,.app-shell.shell-admin>.site-footer{position:relative;z-index:1}
+.app-shell.shell-interior>.top-nav,.app-shell.shell-admin>.top-nav{z-index:100}
+.app-shell.shell-interior>.quick-float,.app-shell.shell-admin>.quick-float{z-index:90}
+.app-shell.shell-interior>.toast,.app-shell.shell-admin>.toast{z-index:400}
+.app-shell.shell-interior>.modal-backdrop,.app-shell.shell-admin>.modal-backdrop{z-index:300}
+.app-shell.shell-interior .page-wrap,.app-shell.shell-admin .page-wrap{padding-top:52px;padding-bottom:80px}
+.app-shell.shell-interior .page-heading{padding:22px 26px;border-radius:22px;background:linear-gradient(135deg,#ffffffd9,#fbf4f8cc);border:1px solid #f0e3eb;box-shadow:0 14px 36px #2734490d;backdrop-filter:blur(14px);margin-bottom:28px}
+.app-shell.shell-interior .page-heading h1{background:linear-gradient(90deg,#2a3a51,#5a4660);-webkit-background-clip:text;background-clip:text;color:transparent}
+.app-shell.shell-interior .heading-icon{background:linear-gradient(145deg,#faeaf1,#ebe4f5);box-shadow:inset 0 0 0 1px #f0d6e3,0 8px 18px #d88faa1a}
+.app-shell.shell-interior .filter-bar{background:#ffffffd6;border:1px solid #efe3eb;backdrop-filter:blur(12px);box-shadow:0 10px 28px #2734490a}
+.app-shell.shell-interior .trip-card,.app-shell.shell-interior .anime-card,.app-shell.shell-interior .note-card,.app-shell.shell-interior .tool-panel,.app-shell.shell-interior .city-card{box-shadow:0 14px 34px #2a3c5510}
+.app-shell.shell-interior .trip-card,.app-shell.shell-interior .anime-card,.app-shell.shell-interior .note-card,.app-shell.shell-interior .tool-panel{border-color:#efe6ee;background:linear-gradient(180deg,#ffffff,#fffbfd)}
+.app-shell.shell-interior .empty{background:linear-gradient(160deg,#ffffffea,#f8eff5d9);border:1px dashed #e7c9d7;box-shadow:0 10px 28px #27344908}
+.app-shell.shell-interior .anime-stats{background:linear-gradient(135deg,#ffffffd4,#f7eef4cc);border:1px solid #f0e4eb;backdrop-filter:blur(10px)}
+.app-shell.shell-interior .section-title,.app-shell.shell-interior .city-intro{padding:8px 4px}
+.app-shell.shell-interior .site-footer,.app-shell.shell-admin .site-footer{background:linear-gradient(180deg,transparent,#e7edf6b8 35%,#d9e1ee);padding-top:110px;margin-top:20px;border-top:1px solid #e4dce8}
+.app-shell.shell-admin .admin-layout{background:transparent}
+.app-shell.shell-admin .admin-side{background:linear-gradient(180deg,#fffefc,#fbf6fa);border-right:1px solid #eee3eb;box-shadow:8px 0 28px #27344908}
+.app-shell.shell-admin .admin-main{background:transparent}
+.app-shell.shell-admin .admin-top{border-bottom-color:#eadfe8;color:#9aa3b2}
+.app-shell.shell-admin .admin-heading{padding:18px 20px;border-radius:18px;background:linear-gradient(135deg,#ffffffd0,#f8f1f6c7);border:1px solid #efe4eb;backdrop-filter:blur(10px)}
+.app-shell.shell-admin .dashboard-stats a,.app-shell.shell-admin .admin-main .panel,.app-shell.shell-admin .admin-main .tool-panel,.app-shell.shell-admin .admin-main table,.app-shell.shell-admin .list-card,.app-shell.shell-admin .form-card{box-shadow:0 12px 30px #2734490c;border-color:#eee4ec}
+.login-card,.login-panel{position:relative;z-index:1}
+@media (max-width:760px){
+  .atm-orb-a,.atm-orb-b,.atm-orb-c{opacity:.35;filter:blur(22px)}
+  .app-shell.shell-interior .page-heading{padding:18px 16px;border-radius:16px}
+  .app-shell.shell-admin .admin-heading{padding:14px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  .atm-orb,.atm-stars,.atm-grain{animation:none!important}
+}
+/* === starlight interior extras === */
+.app-shell.shell-admin .login-page{background:transparent}
+.app-shell.shell-admin .login-card{background:linear-gradient(180deg,#ffffff,#fffbfd);border:1px solid #f0e4eb;box-shadow:0 22px 60px #27344914;backdrop-filter:blur(8px)}
+.app-shell.shell-interior .anime-stats div{background:linear-gradient(180deg,#ffffff,#fffbfd);border:1px solid #efe6ee;box-shadow:0 8px 20px #27344908}
+.app-shell.shell-interior .back-button{background:#ffffffd0;border:1px solid #efe3eb;backdrop-filter:blur(8px)}
+.app-shell.shell-interior .city-intro{padding:14px 18px;border-radius:16px;background:linear-gradient(135deg,#ffffffc9,#f7eef4c2);border:1px solid #f0e4eb;backdrop-filter:blur(10px)}
+.app-shell.shell-admin .admin-side nav a.active{background:linear-gradient(135deg,#fbf0f5,#f3e8f7);box-shadow:inset 0 0 0 1px #f0d8e4}
