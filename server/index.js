@@ -12,6 +12,7 @@ import { settings } from './settings.js';
 import { backup } from './backup.js';
 import { drafts } from './drafts.js';
 import { tags } from './tags.js';
+import { cities } from './cities.js';
 
 if(!process.env.DATABASE_URL||!process.env.SESSION_SECRET||process.env.SESSION_SECRET.length<32||!process.env.PUBLIC_BASE_URL)throw new Error('请配置 DATABASE_URL、SESSION_SECRET 和 PUBLIC_BASE_URL');
 const app=express();
@@ -20,7 +21,7 @@ if(basePath&&!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(basePath))throw new E
 const router=express.Router();
 if(process.env.TRUST_PROXY==='1')app.set('trust proxy','loopback');
 app.disable('x-powered-by');
-app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'","'unsafe-inline'"],imgSrc:["'self'",'data:','blob:','https://*.tile.openstreetmap.org'],connectSrc:["'self'"],fontSrc:["'self'",'data:'],frameSrc:["'self'"],objectSrc:["'none'"],upgradeInsecureRequests:process.env.NODE_ENV==='production'?[]:null}}}));
+app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'","'unsafe-inline'"],imgSrc:["'self'",'data:','blob:'],connectSrc:["'self'"],fontSrc:["'self'",'data:'],frameSrc:["'self'"],objectSrc:["'none'"],upgradeInsecureRequests:process.env.NODE_ENV==='production'?[]:null}}}));
 await db.$queryRawUnsafe('PRAGMA journal_mode = WAL');
 const secureCookie=process.env.COOKIE_SECURE==='true'||(process.env.NODE_ENV==='production'&&process.env.COOKIE_SECURE!=='false');
 app.use(session({store:new PrismaSessionStore(),name:'space.sid',secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false,cookie:{httpOnly:true,sameSite:'strict',secure:secureCookie,path:basePath?'/'+basePath:'/',maxAge:12*60*60*1000}}));
@@ -35,6 +36,7 @@ router.use('/api/settings',settings);
 router.use('/api/backup',backup);
 router.use('/api/drafts',drafts);
 router.use('/api/tags',tags);
+router.use('/api/cities',cities);
 router.use('/api',(req,res)=>res.status(404).json({error:'接口不存在'}));
 const dist=path.resolve(process.env.DIST_DIR||'dist');
 router.use(express.static(dist,{index:false,maxAge:process.env.NODE_ENV==='production'?'1h':0}));

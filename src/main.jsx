@@ -3,8 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Sparkles, Compass, Tv, NotebookPen, Wrench, LockKeyhole, Plus, LogOut, Home as HomeIcon, Settings, Search, Image, CalendarDays, Heart, ChevronDown } from 'lucide-react';
 import { api,setCsrf } from './api';
-import { Home, Travel, Anime, Notes, Tools } from './pages/Public';
+import { Home, Anime, Notes, Tools } from './pages/Public';
 import Admin from './pages/Admin';
+import Travel from './pages/Travel';
 import './style.css';
 
 export const SessionContext=createContext(null);

@@ -22,9 +22,21 @@ model Session {
   @@index([expiresAt])
 }
 
+model TravelCity {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  records   TravelRecord[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
 model TravelRecord {
   id        String        @id @default(cuid())
   title     String
+  cityId    String?
+  cityCategory TravelCity? @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  date      DateTime?
+  // Legacy fields retained for lossless migration; no longer editable or exposed by the API.
   country   String        @default("")
   province  String        @default("")
   city      String        @default("")
@@ -42,6 +54,7 @@ model TravelRecord {
   updatedAt DateTime      @updatedAt
   @@index([isPublic, startDate])
   @@index([status, city])
+  @@index([cityId, isPublic, date])
 }
 
 model TravelPhoto {

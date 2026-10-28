@@ -5,7 +5,8 @@ const tags=z.array(text(32)).max(20).default([]);
 const optionalNumber=(min,max)=>z.union([z.number().finite().min(min).max(max),z.null()]).optional().transform(v=>v??null);
 const publicFlag=z.boolean().default(false);
 export const schemas={
-  travel:z.object({title:text(120).min(1),country:text(80).default(''),province:text(80).default(''),city:text(80).default(''),place:text(120).default(''),startDate:date,endDate:date,status:z.enum(['想去','计划中','已去']),story:text(50000).default(''),tags,latitude:optionalNumber(-90,90),longitude:optionalNumber(-180,180),isPublic:publicFlag,photoIds:z.array(z.string().cuid()).max(30).default([])}).refine(x=>!x.startDate||!x.endDate||x.startDate<=x.endDate,{message:'结束日期不能早于出发日期'}).refine(x=>(x.latitude===null)===(x.longitude===null),{message:'经纬度需要同时填写'}),
+  city:z.object({name:text(80).min(1,'请输入城市名称')}),
+  travel:z.object({title:text(120).min(1,'请输入景点名称'),cityId:z.string().cuid('请选择城市'),date,status:z.enum(['想去','已去']),story:text(50000).default(''),tags,isPublic:publicFlag,photoIds:z.array(z.string().cuid()).max(30).default([])}),
   anime:z.object({title:text(120).min(1),coverId:z.string().cuid().nullable().optional().default(null),tags,totalEpisodes:z.number().int().min(0).max(10000).default(0),currentEpisode:z.number().int().min(0).max(10000).default(0),status:z.enum(['想看','在看','已看','弃番']),startDate:date,endDate:date,score:z.number().int().min(1).max(10).nullable().optional().default(null),review:text(50000).default(''),isPublic:publicFlag}).refine(x=>!x.totalEpisodes||x.currentEpisode<=x.totalEpisodes,{message:'观看进度不能超过总集数'}).refine(x=>!x.startDate||!x.endDate||x.startDate<=x.endDate,{message:'完成日期不能早于开始日期'}),
   note:z.object({title:text(120).min(1),content:text(100000).default(''),tags,isPublic:publicFlag,isDraft:z.boolean().default(false)}),
   todo:z.object({title:text(300).min(1),done:z.boolean().default(false)}),
