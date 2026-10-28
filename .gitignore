@@ -6,3 +6,7 @@ dist/
 data/
 uploads/
 *.log
+
+vite-dev.out
+vite-dev.err
+

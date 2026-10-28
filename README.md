@@ -91,3 +91,25 @@ npm test
 测试覆盖登录、CSRF、私人内容隔离、跨独立会话读取、旅行及动漫更新、图片访问、草稿、备份恢复和重启。浏览器使用示例数据验证了表单、地图、Markdown 图片和移动布局。真实手机、公网 HTTPS 和 Muse VM 重建后的持久性要以部署后实测为准。
 
 首页原创封面由内置 imagegen 生成：`public/anime-hero.png` 为蓝调樱花湖夜景，`public/anime-hero-day.png` 为白日樱花河谷。地图使用 Leaflet 和 OpenStreetMap，不依赖付费地图 API。
+
+
+## 本地联调：随手存 / 文件小站（已揉进工具箱）
+
+开发时 Vite（5173）会把 `/douyin`、`/files` 代理到本机 7863 / 7864。
+
+```powershell
+# 终端 1：星光手帐
+cd digital-space
+npm run dev
+
+# 终端 2：随手存（免访问密码，默认 DISABLE_ACCESS_PASSWORD=1）
+cd douyin
+& "D:\codex\抖音视频下载\.venv\Scripts\python.exe" linux_server.py --port 7863
+
+# 终端 3：文件小站
+cd backend\file-drop
+$env:FILE_DROP_PORT=7864
+& "D:\codex\抖音视频下载\.venv\Scripts\python.exe" app.py
+```
+
+浏览器打开 http://127.0.0.1:5173/#/tools ，进入「随手存」「文件小站」。设 `DISABLE_ACCESS_PASSWORD=0` 可重新打开访问密码。

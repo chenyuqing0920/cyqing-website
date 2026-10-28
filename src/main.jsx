@@ -1,4 +1,4 @@
-import React, { useEffect, useState, createContext, useContext } from 'react';
+﻿import React, { useEffect, useState, createContext, useContext } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Sparkles, Compass, Tv, NotebookPen, Wrench, LockKeyhole, Plus, LogOut, Home as HomeIcon, Settings, Search, Image, CalendarDays, Heart, ChevronDown } from 'lucide-react';
@@ -6,6 +6,8 @@ import { api,setCsrf } from './api';
 import { Home, Anime, Notes, Tools } from './pages/Public';
 import Admin from './pages/Admin';
 import Travel from './pages/Travel';
+import DouyinTool from './pages/DouyinTool';
+import FilesTool from './pages/FilesTool';
 import './style.css';
 
 export const SessionContext=createContext(null);
@@ -22,7 +24,7 @@ function Shell(){
   return <SessionContext.Provider value={{...session,refresh,toast,logout}}><div className={'app-shell '+(location.pathname==='/'?'shell-home':location.pathname.startsWith('/admin')?'shell-admin':'shell-interior')}>
     {location.pathname!=='/'&&<div className={'page-atmosphere'+(location.pathname.startsWith('/admin')?' is-admin':'')} aria-hidden="true" style={{backgroundImage:`linear-gradient(90deg,#101a31b8,#14223a55),url("${import.meta.env.BASE_URL}water02.jpg")`}}><div className="atm-hero-overlay"/><div className="particles">{Array.from({length:location.pathname.startsWith('/admin')?12:22},(_,i)=><i key={i} style={{'--i':i}}/>)}</div></div>}
     <header className={'top-nav '+(location.pathname==='/'?'over-hero':'interior')+(scrolled?' scrolled':'')}><NavLink className="brand" to="/"><span className="brand-mark">✦</span><span>星光手帐<small>MY LITTLE UNIVERSE</small></span></NavLink><nav className={menu?'nav-links open':'nav-links'} aria-label="主导航">{routes.map(([href,label,Icon])=><NavLink key={href} to={href} end={href==='/'}><Icon size={15}/>{label}</NavLink>)}<NavLink to="/admin"><LockKeyhole size={15}/>{session.authenticated?'管理':'登录'}</NavLink></nav><div className="nav-actions">{session.authenticated&&<button className="quick-nav" onClick={()=>setQuick(true)}><Plus size={15}/> 快速记录</button>}<button className="menu-toggle" aria-label={menu?'关闭菜单':'打开菜单'} onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></div></header>
-    <Routes><Route path="/" element={<Home/>}/><Route path="/travel" element={<Travel/>}/><Route path="/anime" element={<Anime/>}/><Route path="/notes" element={<Notes/>}/><Route path="/tools" element={<Tools/>}/><Route path="/admin/*" element={<Admin/>}/><Route path="*" element={<div className="page-wrap"><h1>这个地方还没有故事。</h1><NavLink to="/">返回首页</NavLink></div>}/></Routes>
+    <Routes><Route path="/" element={<Home/>}/><Route path="/travel" element={<Travel/>}/><Route path="/anime" element={<Anime/>}/><Route path="/notes" element={<Notes/>}/><Route path="/tools" element={<Tools/>}/><Route path="/tools/douyin" element={<DouyinTool/>}/><Route path="/tools/files" element={<FilesTool/>}/><Route path="/admin/*" element={<Admin/>}/><Route path="*" element={<div className="page-wrap"><h1>这个地方还没有故事。</h1><NavLink to="/">返回首页</NavLink></div>}/></Routes>
     <footer className="site-footer"><div className="footer-mark">✦</div><p>把平凡的日子，过成喜欢的样子。</p><small>© {new Date().getFullYear()} 星光里的生活手帐 · Made for moments</small></footer>
     {session.authenticated&&<button className="quick-float" onClick={()=>setQuick(true)} aria-label="快速记录"><Plus size={21}/></button>}
     {quick&&<QuickNote close={()=>setQuick(false)}/>}{message&&<div role="status" className="toast">{message}</div>}
