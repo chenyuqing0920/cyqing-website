@@ -8,22 +8,13 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    proxy: {
-      '/api': 'http://127.0.0.1:3070',
-      // Keep browser Host/Origin as 5173 so douyin CSRF origin check matches.
-      '/douyin': {
-        target: 'http://127.0.0.1:7863',
-        rewrite: (path) => {
-          const next = path.replace(/^\/douyin/, '') || '/';
-          return next;
-        },
-        changeOrigin: false,
-      },
-      '/files': {
-        target: 'http://127.0.0.1:7864',
-        changeOrigin: false,
-      },
-    },
+    // Everything goes through the Express API (3070), which reverse-proxies
+    // /files and /douyin to the tool services. changeOrigin:false keeps the
+    // browser Host so same-origin checks match the 5173 Origin.
+    proxy: Object.fromEntries(['api', 'files', 'douyin'].map((name) => [
+      (basePath ? '/' + basePath : '') + '/' + name,
+      { target: 'http://127.0.0.1:' + (process.env.PORT || 3070), changeOrigin: false },
+    ])),
   },
   build: {
     rollupOptions: {

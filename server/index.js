@@ -13,6 +13,7 @@ import { backup } from './backup.js';
 import { drafts } from './drafts.js';
 import { tags } from './tags.js';
 import { cities } from './cities.js';
+import { toolProxy,toolUpstreams } from './tool-proxy.js';
 
 if(!process.env.DATABASE_URL||!process.env.SESSION_SECRET||process.env.SESSION_SECRET.length<32||!process.env.PUBLIC_BASE_URL)throw new Error('请配置 DATABASE_URL、SESSION_SECRET 和 PUBLIC_BASE_URL');
 const app=express();
@@ -25,10 +26,15 @@ app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptS
 await db.$queryRawUnsafe('PRAGMA journal_mode = WAL');
 const secureCookie=process.env.COOKIE_SECURE==='true'||(process.env.NODE_ENV==='production'&&process.env.COOKIE_SECURE!=='false');
 app.use(session({store:new PrismaSessionStore(),name:'space.sid',secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false,cookie:{httpOnly:true,sameSite:'strict',secure:secureCookie,path:basePath?'/'+basePath:'/',maxAge:12*60*60*1000}}));
+// Tools are proxied before the JSON parser/CSRF so bodies stream untouched;
+// the proxy applies its own same-origin, size and rate limits (no password).
+const tools=toolUpstreams();
+router.use('/files',...toolProxy('files',tools.files));
+router.use('/douyin',...toolProxy('douyin',tools.douyin));
 router.use(verifyCsrf);
 router.use((req,res,next)=>express.json({limit:req.path==='/api/backup/restore'?'120mb':'2mb'})(req,res,next));
 router.get('/api/health',async(req,res)=>{try{await db.$queryRaw`SELECT 1`;res.json({ok:true});}catch{res.status(503).json({ok:false});}});
-router.get('/api/links',(req,res)=>{let base='';try{const url=new URL(process.env.LEGACY_BASE_URL);if(['http:','https:'].includes(url.protocol)&&!url.username&&!url.password)base=url.origin+url.pathname.replace(/\/$/,'');}catch{}res.json({douyin:base+'/douyin/',files:base+'/files/'});});
+router.get('/api/links',(req,res)=>{const base=basePath?'/'+basePath:'';res.json({douyin:base+'/douyin/',files:base+'/files/'});});
 router.use('/api/auth',auth);
 router.use('/api/records',records);
 router.use('/api/media',media);

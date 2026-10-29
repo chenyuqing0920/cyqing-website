@@ -18,7 +18,7 @@ async function call(url,{method='GET',body,auth=false,extra={}}={}){
   const res=await fetch(base+prefix+url,{method,headers,body:payload});return res;
 }
 async function start(){
-  child=spawn(process.execPath,['server/index.js'],{cwd:process.cwd(),env:{...process.env,DATABASE_URL:process.env.TEST_DATABASE_URL,UPLOAD_DIR:'./data/test-uploads',BASE_PATH:prefix,PORT:'3071',PUBLIC_BASE_URL:publicOrigin,NODE_ENV:secure?'production':'test',COOKIE_SECURE:secure?'true':'false',TRUST_PROXY:secure?'1':'0'},stdio:'ignore'});
+  child=spawn(process.execPath,['server/index.js'],{cwd:process.cwd(),env:{...process.env,DATABASE_URL:process.env.TEST_DATABASE_URL,UPLOAD_DIR:'./data/test-uploads',BASE_PATH:prefix,PORT:'3071',PUBLIC_BASE_URL:publicOrigin,NODE_ENV:secure?'production':'test',COOKIE_SECURE:secure?'true':'false',TRUST_PROXY:secure?'1':'0',FILE_DROP_URL:'http://127.0.0.1:9',DOUYIN_URL:'http://127.0.0.1:9'},stdio:'ignore'});
   for(let i=0;i<100;i++){try{if((await fetch(base+prefix+'/api/health')).ok)return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('Test server did not start');
 }
 async function stop(){if(!child||child.exitCode!==null)return;const pid=child.pid;child.kill();await Promise.race([new Promise(r=>child.once('exit',r)),new Promise(r=>setTimeout(r,3000))]);if(process.platform==='win32'&&child.exitCode===null)spawn('taskkill',['/PID',String(pid),'/F'],{stdio:'ignore'});}
@@ -117,4 +117,10 @@ test('session cookie path follows BASE_PATH and logout clears it',async()=>{
   assert.match(cleared,pathPattern);
   res=await fetch(base+prefix+'/api/auth/session',{headers:{Cookie:myCookie}});
   assert.equal((await res.json()).authenticated,false);
+});
+
+test('tool routes are proxied same-origin and report a dead upstream as JSON',async()=>{
+  for(const p of ['/files/api/list','/douyin/api/session']){const res=await call(p);assert.equal(res.status,502);assert.match(res.headers.get('content-type'),/json/);assert.equal((await res.json()).upstream,'unreachable');}
+  const res=await call('/files/api/delete',{method:'POST',body:{name:'x'},extra:{Origin:'https://evil.example'}});assert.equal(res.status,403);
+  const links=await (await call('/api/links')).json();assert.equal(links.files,prefix+'/files/');assert.equal(links.douyin,prefix+'/douyin/');
 });
