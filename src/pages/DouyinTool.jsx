@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Download, Film, Image as ImageIcon, Loader2, RefreshCw, Trash2, X } from 'lucide-react';
 import { useSession } from '../main';
 
-const PREFIX = '/douyin';
+// Same-origin via the main site (BASE_PATH aware): /life/douyin in production.
+const PREFIX = import.meta.env.BASE_URL + 'douyin';
 const STATES = { queued: '排队中', resolving: '解析中', ready: '可下载', failed: '未完成', cancelled: '已取消' };
 
 async function douyinApi(path, options = {}) {
   const headers = {
     ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-    ...(options.csrf ? { 'X-CSRF-Token': options.csrf } : {}),
     ...options.headers,
   };
   const response = await fetch(PREFIX + path, {
@@ -33,7 +33,7 @@ function imageURL(job, number, inline = false) {
 
 export default function DouyinTool() {
   const { toast } = useSession();
-  const [csrf, setCsrf] = useState('');
+  const [ready, setReady] = useState(false);
   const [text, setText] = useState('');
   const [jobs, setJobs] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -42,11 +42,9 @@ export default function DouyinTool() {
   const [preview, setPreview] = useState(null);
   const timer = useRef(null);
 
-  const refresh = useCallback(async (token) => {
-    const key = token || csrf;
-    if (!key) return;
+  const refresh = useCallback(async () => {
     try {
-      const data = await douyinApi('/api/jobs', { csrf: key === 'disabled' ? '' : key });
+      const data = await douyinApi('/api/jobs');
       setJobs(data.jobs || []);
       setOnline('online');
       setError('');
@@ -54,17 +52,17 @@ export default function DouyinTool() {
       setOnline('error');
       setError(e.message);
     }
-  }, [csrf]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const session = await douyinApi('/api/session');
+        await douyinApi('/api/session');
         if (cancelled) return;
-        setCsrf(session.csrf || 'disabled');
+        setReady(true);
         setOnline('online');
-        await refresh(session.csrf || 'disabled');
+        await refresh();
       } catch (e) {
         if (!cancelled) {
           setOnline('error');
@@ -79,10 +77,10 @@ export default function DouyinTool() {
 
   useEffect(() => {
     clearTimeout(timer.current);
-    if (!csrf) return undefined;
+    if (!ready) return undefined;
     timer.current = setTimeout(() => refresh(), 2500);
     return () => clearTimeout(timer.current);
-  }, [csrf, jobs, refresh]);
+  }, [ready, jobs, refresh]);
 
   async function submit(e) {
     e.preventDefault();
@@ -91,7 +89,6 @@ export default function DouyinTool() {
     try {
       await douyinApi('/api/jobs', {
         method: 'POST',
-        csrf: csrf === 'disabled' ? '' : csrf,
         body: JSON.stringify({ text }),
       });
       setText('');
@@ -108,7 +105,6 @@ export default function DouyinTool() {
     try {
       await douyinApi(path, {
         method: 'POST',
-        csrf: csrf === 'disabled' ? '' : csrf,
         body: '{}',
       });
       if (message) toast?.(message);
@@ -122,7 +118,6 @@ export default function DouyinTool() {
     try {
       await douyinApi('/api/jobs', {
         method: 'POST',
-        csrf: csrf === 'disabled' ? '' : csrf,
         body: JSON.stringify({ text: link }),
       });
       await refresh();

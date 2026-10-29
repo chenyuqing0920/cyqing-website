@@ -3,8 +3,11 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, FolderUp, Loader2, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { useSession } from '../main';
 
+// Same-origin via the main site (BASE_PATH aware): /life/files in production.
+const FILES = import.meta.env.BASE_URL + 'files';
+
 async function filesApi(path, options = {}) {
-  const response = await fetch('/files' + path, {
+  const response = await fetch(FILES + path, {
     method: options.method || 'GET',
     body: options.body,
     headers: options.headers,
@@ -56,7 +59,7 @@ export default function FilesTool() {
     const data = new FormData();
     selected.forEach((file) => data.append('files', file, file.name));
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/files/api/upload');
+    xhr.open('POST', FILES + '/api/upload');
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) setProgress(Math.round((event.loaded / event.total) * 100));
     };
@@ -188,7 +191,7 @@ export default function FilesTool() {
             <article key={file.name} className="file-row">
               <div className="file-name"><b>{file.name}</b><small>{file.size} · {file.time}</small></div>
               <div className="file-actions">
-                <a className="secondary" href={`/files/download/${encodeURIComponent(file.name)}`} download>下载</a>
+                <a className="secondary" href={`${FILES}/download/${encodeURIComponent(file.name)}`} download>下载</a>
                 <button type="button" className="quiet-icon" aria-label={`删除 ${file.name}`} onClick={() => remove(file.name)}><Trash2 size={14} /></button>
               </div>
             </article>
