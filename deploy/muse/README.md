@@ -45,6 +45,10 @@ journalctl -u personal-life-space.service -f
 
 先完成本机功能、安全和备份验收，再单独设计现有前置代理的 `/life/` 路由。它应将完整 `/life/...` 路径转发至 `127.0.0.1:7870`，不可把新站的 `/api` 或 `/assets` 转给随手存；不要改动其他路径。构建和服务的 `BASE_PATH` 必须保持一致。公网 HTTPS 前，将新站 `site.env` 的 `PUBLIC_BASE_URL` 改成 `https://tool.cyqing.icu`（只写源站，不加 `/life`），设置 `COOKIE_SECURE=true`，并在可信代理正确设置 `X-Forwarded-Proto: https` 后启用 `TRUST_PROXY=1`。否则 Secure 会话 Cookie 可能无法登录。仅重启新服务，逐项验证老站首页、`/douyin/`、`/files/`、新站 `/life/` 和登录；出问题先回滚新路由。
 
+## 随手存 / 文件小站并入 `/life`
+
+新站已同源反代两个工具：`/life/files/...` → `FILE_DROP_URL`（默认 `127.0.0.1:7864`，路径原样），`/life/douyin/...` → `DOUYIN_URL`（默认 `127.0.0.1:7863`，去掉 `/douyin`）。前置代理只需把 `/life/` 整体转到 7870，不需要为工具另开路由。在 `site.env` 中按需设置 `FILE_DROP_URL`、`DOUYIN_URL`、`FILE_DROP_MAX_MB`（默认 2048）、`TOOL_WRITE_LIMIT_PER_MIN`、`TOOL_READ_LIMIT_PER_MIN`、`TOOL_UPSTREAM_TIMEOUT_MS`。上游未启动时返回 JSON 502。两个工具已无访问密码，`DISABLE_ACCESS_PASSWORD` 不再使用；先部署新版 Python 服务（`douyin-server.service`、`file-drop.service` 重启即可），再重启 `personal-life-space`，验证 `/life/#/tools/files`、`/life/#/tools/douyin`。免密意味着任何访问者都能上传/删除，敏感文件不要放进文件小站。
+
 ## 更新与回滚
 
 先备份状态目录中的数据库和上传文件并验证恢复；检查 Git 工作区干净，再 `git fetch` 和 `git merge --ff-only origin/main`（主分支即新站内容；personal-life-space 分支已并入主分支、仅作历史保留）。运行 `bash deploy/muse/prepare.sh` 安装锁定依赖、执行迁移和构建，然后 `sudo systemctl restart personal-life-space.service` 并检查日志与健康接口。避免自动提交、自动合并冲突或清理数据。若数据库迁移无法逆向，回滚代码前先恢复匹配版本的数据库备份。

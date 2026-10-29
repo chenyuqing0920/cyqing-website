@@ -48,7 +48,7 @@ unset ADMIN_PASSWORD
 node server/index.js
 ```
 
-应用不提供公开注册。Linux 后台守护及具体路径请参阅 `deploy/muse/README.md`；请先核实目标机器的持久化和 systemd 状态，避免覆盖已有服务。`PUBLIC_BASE_URL` 必须等于浏览器访问的协议、域名和端口，末尾不要加 `/`，用于校验写请求来源。`LEGACY_BASE_URL` 可指向原站，工具箱里的随手存和文件小站就会链接到原服务。
+应用不提供公开注册。Linux 后台守护及具体路径请参阅 `deploy/muse/README.md`；请先核实目标机器的持久化和 systemd 状态，避免覆盖已有服务。`PUBLIC_BASE_URL` 必须等于浏览器访问的协议、域名和端口，末尾不要加 `/`，用于校验写请求来源。随手存和文件小站由本站 Express 同源反代（见下节），浏览器只访问本站一个网站。
 
 ## 备份与恢复
 
@@ -93,23 +93,45 @@ npm test
 首页原创封面由内置 imagegen 生成：`public/anime-hero.png` 为蓝调樱花湖夜景，`public/anime-hero-day.png` 为白日樱花河谷。地图使用 Leaflet 和 OpenStreetMap，不依赖付费地图 API。
 
 
-## 本地联调：随手存 / 文件小站（已揉进工具箱）
+## 随手存 / 文件小站（同源并入主站，免密）
 
-开发时 Vite（5173）会把 `/douyin`、`/files` 代理到本机 7863 / 7864。
+两个工具都由主站 Express 同源反向代理，浏览器只访问一个网站（CSP `connect-src 'self'` 不用放宽）：
+
+| 浏览器路径（含 `BASE_PATH`） | 上游 | 上游收到的路径 |
+| --- | --- | --- |
+| `{BASE_PATH}/files/...` | `FILE_DROP_URL`（默认 `http://127.0.0.1:7864`） | `/files/...`（原样） |
+| `{BASE_PATH}/douyin/...` | `DOUYIN_URL`（默认 `http://127.0.0.1:7863`） | `/...`（去掉 `/douyin`） |
+
+生产（Muse，`BASE_PATH=/life`）即 `https://tool.cyqing.icu/life/files/...`、`/life/douyin/...`；前端统一用 `import.meta.env.BASE_URL` 拼前缀。
+
+环境变量（都可选）：
+
+- `FILE_DROP_URL` / `DOUYIN_URL`：上游地址。设 `TOOLS_USE_LEGACY=1` 时（且未设前两者），两者都转发到 `LEGACY_BASE_URL` 前置代理（保留 `/files`、`/douyin` 前缀）。
+- `FILE_DROP_MAX_MB`：单次上传上限，默认 `2048`。随手存请求体固定 64 KB 上限。
+- `TOOL_WRITE_LIMIT_PER_MIN`（默认 60）/ `TOOL_READ_LIMIT_PER_MIN`（默认 600）：每 IP 每工具限速。
+- `TOOL_UPSTREAM_TIMEOUT_MS`：上游空闲超时，默认 120000。
+
+行为：没有访问密码；写操作（上传、删除、提交、取消）必须同源（`Origin` 与 Host 或 `PUBLIC_BASE_URL` 一致），否则 403；上游连不上返回 JSON `502`（超时 `504`），`{"upstream":"unreachable"}`，不会落到 SPA 页面；请求和响应都流式转发，大文件不进内存。
+
+> 风险提示：免密意味着任何知道网址的人都能上传、下载、删除文件和提交下载任务，请勿在文件小站存放隐私文件，必要时在前置代理加 IP 白名单。
+
+### 本地联调
+
+开发时 Vite（5173）把 `/api`、`/files`、`/douyin` 都交给 Express（3070），再由它反代到 7863 / 7864，与生产同一条路径。
 
 ```powershell
 # 终端 1：星光手帐
 cd digital-space
 npm run dev
 
-# 终端 2：随手存（免访问密码，默认 DISABLE_ACCESS_PASSWORD=1）
+# 终端 2：随手存（免密）
 cd douyin
 & "D:\codex\抖音视频下载\.venv\Scripts\python.exe" linux_server.py --port 7863
 
-# 终端 3：文件小站
+# 终端 3：文件小站（免密）
 cd backend\file-drop
 $env:FILE_DROP_PORT=7864
 & "D:\codex\抖音视频下载\.venv\Scripts\python.exe" app.py
 ```
 
-浏览器打开 http://127.0.0.1:5173/#/tools ，进入「随手存」「文件小站」。设 `DISABLE_ACCESS_PASSWORD=0` 可重新打开访问密码。
+浏览器打开 http://127.0.0.1:5173/#/tools ，进入「随手存」「文件小站」。工具服务没启动时页面会显示「服务暂时连不上」。
