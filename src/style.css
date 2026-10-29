@@ -722,3 +722,16 @@ html.flip-home,html.flip-home body,html.flip-home #root{
   color:#a24457;
   border:1px solid rgba(162,68,87,.15);
 }
+/* Mobile menu: the dropdown panel is light glass in every nav state (home
+   over-hero, home scrolled, interior, admin), so its links must always use
+   dark ink. The home-scrolled white link rule is more specific than the
+   760px rule, which made the open menu white-on-white. */
+@media (max-width:760px){
+  .app-shell .top-nav .nav-links.open a,
+  .app-shell.shell-home>.top-nav.over-hero.scrolled .nav-links.open a{color:rgba(76,73,72,.88) !important;background:transparent}
+  .app-shell .top-nav .nav-links.open a:hover,
+  .app-shell .top-nav .nav-links.open a.active,
+  .app-shell.shell-home>.top-nav.over-hero.scrolled .nav-links.open a:hover,
+  .app-shell.shell-home>.top-nav.over-hero.scrolled .nav-links.open a.active{color:#49b1f5 !important;background:rgba(73,177,245,.12) !important}
+  .app-shell .top-nav .nav-links.open{background:rgba(255,255,255,.94);backdrop-filter:blur(5px) saturate(150%);-webkit-backdrop-filter:blur(5px) saturate(150%)}
+}
