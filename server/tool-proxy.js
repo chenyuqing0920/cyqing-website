@@ -62,6 +62,10 @@ export function toolProxy(key,upstream,{publicBase=process.env.PUBLIC_BASE_URL,w
     if(length>upstream.maxBytes)return json(res,413,{error:`${upstream.name}单次请求超过大小限制`,tool:key});
     const headers={};
     for(const [k,v] of Object.entries(req.headers))if(!HOP.includes(k))headers[k]=v;
+    // Password-free front door: the proxy proves itself to the loopback
+    // upstreams with a shared secret from site.env. Set server-side, so it
+    // overwrites any browser-spoofed value and never reaches the browser.
+    if(process.env.TOOL_PROXY_SECRET)headers['x-tool-proxy-key']=process.env.TOOL_PROXY_SECRET;
     const loop=isLoopback(upstream.target);
     // Loopback services see the public Host so their own same-origin check
     // matches the browser Origin; a remote upstream needs its own Host/Origin.
