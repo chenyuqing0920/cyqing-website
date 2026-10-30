@@ -19,13 +19,20 @@ const isLoopback=url=>['127.0.0.1','localhost','[::1]','::1'].includes(url.hostn
 // Resolve upstreams. Explicit FILE_DROP_URL / DOUYIN_URL win; with
 // TOOLS_USE_LEGACY=1 the LEGACY_BASE_URL front proxy (which already routes
 // /files and /douyin) is reused; otherwise the services are expected on their default loopback ports.
+// File uploads are uncapped by default (disk space is the only bound).
+// Set FILE_DROP_MAX_MB to re-impose a per-request cap in megabytes.
+function fileMaxBytes(env){
+  const mb=Number(env.FILE_DROP_MAX_MB);
+  return Number.isFinite(mb)&&mb>0?mb*1024*1024:Infinity;
+}
+
 export function toolUpstreams(env=process.env){
   let legacy=null;
   if(env.TOOLS_USE_LEGACY==='1'&&env.LEGACY_BASE_URL){try{legacy=parseTarget(env.LEGACY_BASE_URL);}catch{legacy=null;}}
   return {
     files:env.FILE_DROP_URL||!legacy
-      ?{name:'文件小站',target:parseTarget(env.FILE_DROP_URL,'http://127.0.0.1:7864'),prefix:'/files',maxBytes:Number(env.FILE_DROP_MAX_MB||2048)*1024*1024}
-      :{name:'文件小站',target:legacy,prefix:'/files',maxBytes:Number(env.FILE_DROP_MAX_MB||2048)*1024*1024},
+      ?{name:'文件小站',target:parseTarget(env.FILE_DROP_URL,'http://127.0.0.1:7864'),prefix:'/files',maxBytes:fileMaxBytes(env)}
+      :{name:'文件小站',target:legacy,prefix:'/files',maxBytes:fileMaxBytes(env)},
     // linux_server.py serves at "/", so the /douyin prefix is stripped,
     // except behind the legacy front proxy which strips it itself.
     douyin:env.DOUYIN_URL||!legacy
