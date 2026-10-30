@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from './db.js';
-import { requireAuth } from './auth.js';
+import { requireAuth,isAuthed } from './auth.js';
 import { schemas, errorMessage } from './validation.js';
 
 export const records=Router();
@@ -12,7 +12,7 @@ const present=(kind,item)=>kind==='travel'?{...item,city:item.cityCategory?.name
 const bodyData=(kind,data)=>{if(kind!=='travel')return data;const {photoIds,...rest}=data;return {...rest,photos:{create:photoIds.map((assetId,position)=>({assetId,position}))}};};
 function publicWhere(kind,authenticated){return authenticated?{}:kind==='note'?{isPublic:true,isDraft:false}:{isPublic:true};}
 records.get('/overview',async(req,res,next)=>{try{
-  const authed=!!req.session.userId;
+  const authed=isAuthed(req);
   const [config,travels,anime,notes]=await Promise.all([
     db.siteConfig.findUnique({where:{id:'site'}}),
     db.travelRecord.findMany({where:publicWhere('travel',authed),select:selectFields.travel,orderBy:{updatedAt:'desc'},take:4}),
@@ -22,7 +22,7 @@ records.get('/overview',async(req,res,next)=>{try{
 }catch(e){next(e);}});
 records.get('/:kind',async(req,res,next)=>{try{
   const kind=req.params.kind,model=models[kind];if(!model)return res.status(404).json({error:'记录类型不存在'});
-  const authed=!!req.session.userId;if(!authed&&!publicTypes.has(kind))return res.status(401).json({error:'请先登录'});
+  const authed=isAuthed(req);if(!authed&&!publicTypes.has(kind))return res.status(401).json({error:'请先登录'});
   const where=publicTypes.has(kind)?publicWhere(kind,authed):{};
   const q=typeof req.query.q==='string'?req.query.q.trim().slice(0,100):'';
   if(q)where.OR=(kind==='travel'?['title','story']:kind==='anime'?['title','review']:kind==='note'?['title','content']:['title']).map(field=>({[field]:{contains:q}}));
@@ -38,8 +38,8 @@ records.get('/:kind',async(req,res,next)=>{try{
 }catch(e){next(e);}});
 records.get('/:kind/:id',async(req,res,next)=>{try{
   const kind=req.params.kind,model=models[kind];if(!model)return res.status(404).json({error:'记录类型不存在'});
-  if(!req.session.userId&&!publicTypes.has(kind))return res.status(401).json({error:'请先登录'});
-  const item=await db[model].findFirst({where:{id:req.params.id,...(publicTypes.has(kind)?publicWhere(kind,!!req.session.userId):{})},...(publicTypes.has(kind)?{select:selectFields[kind]}:{})});
+  if(!isAuthed(req)&&!publicTypes.has(kind))return res.status(401).json({error:'请先登录'});
+  const item=await db[model].findFirst({where:{id:req.params.id,...(publicTypes.has(kind)?publicWhere(kind,isAuthed(req)):{})},...(publicTypes.has(kind)?{select:selectFields[kind]}:{})});
   if(!item)return res.status(404).json({error:'记录不存在'});res.json(present(kind,item));
 }catch(e){next(e);}});
 async function validateAssets(kind,data){

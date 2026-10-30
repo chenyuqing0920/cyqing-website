@@ -1,15 +1,15 @@
 import { Router } from 'express';
 import { db } from './db.js';
-import { requireAuth } from './auth.js';
+import { requireAuth,isAuthed } from './auth.js';
 import { schemas, errorMessage } from './validation.js';
 
 export const cities = Router();
 // Empty cities and private-only cities are visible only to the owner.
 cities.get('/', async (req, res, next) => {
   try {
-    const visible = req.session.userId ? {} : { isPublic: true };
+    const visible = isAuthed(req) ? {} : { isPublic: true };
     const items = await db.travelCity.findMany({
-      where: req.session.userId ? {} : { records: { some: visible } },
+      where: isAuthed(req) ? {} : { records: { some: visible } },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, records: { where: visible, orderBy: { updatedAt: 'desc' },
         select: { status: true, photos: { orderBy: { position: 'asc' }, take: 1, select: { assetId: true } } } } }

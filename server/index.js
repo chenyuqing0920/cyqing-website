@@ -5,7 +5,7 @@ import session from 'express-session';
 import helmet from 'helmet';
 import { db } from './db.js';
 import { PrismaSessionStore } from './session-store.js';
-import { auth,verifyCsrf } from './auth.js';
+import { auth,verifyCsrf,authenticateMachine,machineWriteLimiter } from './auth.js';
 import { records } from './records.js';
 import { media } from './media.js';
 import { settings } from './settings.js';
@@ -16,6 +16,7 @@ import { cities } from './cities.js';
 import { toolProxy,toolUpstreams } from './tool-proxy.js';
 
 if(!process.env.DATABASE_URL||!process.env.SESSION_SECRET||process.env.SESSION_SECRET.length<32||!process.env.PUBLIC_BASE_URL)throw new Error('请配置 DATABASE_URL、SESSION_SECRET 和 PUBLIC_BASE_URL');
+if(process.env.MACHINE_API_KEY&&process.env.MACHINE_API_KEY.length<32)throw new Error('MACHINE_API_KEY 至少需要 32 个字符');
 const app=express();
 const basePath=(process.env.BASE_PATH||'').replace(/^\/+|\/+$/g,'');
 if(basePath&&!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(basePath))throw new Error('BASE_PATH 无效');
@@ -31,6 +32,8 @@ app.use(session({store:new PrismaSessionStore(),name:'space.sid',secret:process.
 const tools=toolUpstreams();
 router.use('/files',...toolProxy('files',tools.files));
 router.use('/douyin',...toolProxy('douyin',tools.douyin));
+router.use(authenticateMachine);
+router.use(machineWriteLimiter);
 router.use(verifyCsrf);
 router.use((req,res,next)=>express.json({limit:req.path==='/api/backup/restore'?'120mb':'2mb'})(req,res,next));
 router.get('/api/health',async(req,res)=>{try{await db.$queryRaw`SELECT 1`;res.json({ok:true});}catch{res.status(503).json({ok:false});}});

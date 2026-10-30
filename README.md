@@ -93,6 +93,34 @@ npm test
 首页原创封面由内置 imagegen 生成：`public/anime-hero.png` 为蓝调樱花湖夜景，`public/anime-hero-day.png` 为白日樱花河谷。地图使用 Leaflet 和 OpenStreetMap，不依赖付费地图 API。
 
 
+
+## 机器写入（API Key）
+
+AI 或脚本可用 `Authorization: Bearer <MACHINE_API_KEY>` 写入全站数据（记录、图片、草稿、标签、设置、备份导入导出），权限与已登录管理员相同。浏览器 Cookie + CSRF 路径不变。
+
+1. 生成至少 32 字符密钥，写入环境变量 `MACHINE_API_KEY`（可选 `MACHINE_WRITE_LIMIT_PER_MIN`，默认每 IP 每分钟 120 次写请求）。
+2. 未配置密钥时，带 `Bearer` 的请求返回 401；不带该头则仍走登录会话。
+3. 生产 `BASE_PATH=/life` 时，URL 前缀为 `/life`（例如 `https://tool.cyqing.icu/life/api/...`）。
+
+创建笔记：
+
+```bash
+curl -sS -X POST "$BASE/api/records/note" \
+  -H "Authorization: Bearer $MACHINE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"AI 笔记","content":"由机器接口写入","tags":["ai"],"isPublic":false,"isDraft":false}'
+```
+
+上传图片（字段名 `image`）：
+
+```bash
+curl -sS -X POST "$BASE/api/media" \
+  -H "Authorization: Bearer $MACHINE_API_KEY" \
+  -F "image=@./photo.png"
+```
+
+本地预览时 `$BASE` 可为 `http://127.0.0.1:3070`；Muse 生产为 `https://tool.cyqing.icu/life`。密钥等同管理员，勿提交到仓库或放进前端。
+
 ## 随手存 / 文件小站（同源并入主站，免密）
 
 两个工具都由主站 Express 同源反向代理，浏览器只访问一个网站（CSP `connect-src 'self'` 不用放宽）：

@@ -5,7 +5,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import { Router } from 'express';
 import { db } from './db.js';
-import { requireAuth } from './auth.js';
+import { requireAuth,isAuthed } from './auth.js';
 
 export const uploadDir=path.resolve(process.env.UPLOAD_DIR||'./uploads');
 await fs.mkdir(uploadDir,{recursive:true});
@@ -25,7 +25,7 @@ media.post('/',requireAuth,upload.single('image'),async(req,res,next)=>{try{
 media.get('/:id',async(req,res,next)=>{try{
   const asset=await db.mediaAsset.findUnique({where:{id:req.params.id},include:{travelPhotos:{include:{travel:{select:{isPublic:true}}}},animeCovers:{select:{isPublic:true}},heroFor:{select:{id:true}}}});
   if(!asset)return res.status(404).end();
-  if(!req.session.userId){
+  if(!isAuthed(req)){
     const publicNote=await db.note.findFirst({where:{isPublic:true,isDraft:false,content:{contains:'/api/media/'+asset.id}},select:{id:true}});
     if(!asset.heroFor.length&&!asset.travelPhotos.some(p=>p.travel.isPublic)&&!asset.animeCovers.some(a=>a.isPublic)&&!publicNote)return res.status(404).end();
   }

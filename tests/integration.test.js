@@ -11,14 +11,14 @@ dotenv.config();
 if(!process.env.TEST_DATABASE_URL||!process.env.TEST_DATABASE_URL.startsWith('file:')||!process.env.TEST_DATABASE_URL.includes('digital_space_test'))throw new Error('Tests require an isolated digital_space_test SQLite database');
 const base='http://127.0.0.1:3071',prefix=process.env.TEST_BASE_PATH||'',secure=process.env.TEST_SECURE==='1',publicOrigin=secure?'https://tool.cyqing.icu':base,origin={Origin:publicOrigin,...(secure?{'X-Forwarded-Proto':'https'}:{})};
 const db=new PrismaClient({datasources:{db:{url:process.env.TEST_DATABASE_URL}}});
-const username='integration-admin',password=crypto.randomBytes(24).toString('base64url');let child,cookie='',csrf='',privateNote,assetId,backupBody,travelId,animeId,cityId;
+const username='integration-admin',password=crypto.randomBytes(24).toString('base64url'),machineKey=crypto.randomBytes(32).toString('hex');let child,cookie='',csrf='',privateNote,assetId,backupBody,travelId,animeId,cityId;
 async function call(url,{method='GET',body,auth=false,extra={}}={}){
   const headers={...origin,...extra};if(auth){headers.Cookie=cookie;if(method!=='GET')headers['X-CSRF-Token']=csrf;}let payload=body;
   if(body&&!(body instanceof FormData)){headers['Content-Type']='application/json';payload=JSON.stringify(body);}
   const res=await fetch(base+prefix+url,{method,headers,body:payload});return res;
 }
 async function start(){
-  child=spawn(process.execPath,['server/index.js'],{cwd:process.cwd(),env:{...process.env,DATABASE_URL:process.env.TEST_DATABASE_URL,UPLOAD_DIR:'./data/test-uploads',BASE_PATH:prefix,PORT:'3071',PUBLIC_BASE_URL:publicOrigin,NODE_ENV:secure?'production':'test',COOKIE_SECURE:secure?'true':'false',TRUST_PROXY:secure?'1':'0',FILE_DROP_URL:'http://127.0.0.1:9',DOUYIN_URL:'http://127.0.0.1:9'},stdio:'ignore'});
+  child=spawn(process.execPath,['server/index.js'],{cwd:process.cwd(),env:{...process.env,DATABASE_URL:process.env.TEST_DATABASE_URL,UPLOAD_DIR:'./data/test-uploads',BASE_PATH:prefix,PORT:'3071',PUBLIC_BASE_URL:publicOrigin,NODE_ENV:secure?'production':'test',COOKIE_SECURE:secure?'true':'false',TRUST_PROXY:secure?'1':'0',FILE_DROP_URL:'http://127.0.0.1:9',DOUYIN_URL:'http://127.0.0.1:9',MACHINE_API_KEY:machineKey,MACHINE_WRITE_LIMIT_PER_MIN:'1000'},stdio:'ignore'});
   for(let i=0;i<100;i++){try{if((await fetch(base+prefix+'/api/health')).ok)return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('Test server did not start');
 }
 async function stop(){if(!child||child.exitCode!==null)return;const pid=child.pid;child.kill();await Promise.race([new Promise(r=>child.once('exit',r)),new Promise(r=>setTimeout(r,3000))]);if(process.platform==='win32'&&child.exitCode===null)spawn('taskkill',['/PID',String(pid),'/F'],{stdio:'ignore'});}
@@ -123,4 +123,41 @@ test('tool routes are proxied same-origin and report a dead upstream as JSON',as
   for(const p of ['/files/api/list','/douyin/api/session']){const res=await call(p);assert.equal(res.status,502);assert.match(res.headers.get('content-type'),/json/);assert.equal((await res.json()).upstream,'unreachable');}
   const res=await call('/files/api/delete',{method:'POST',body:{name:'x'},extra:{Origin:'https://evil.example'}});assert.equal(res.status,403);
   const links=await (await call('/api/links')).json();assert.equal(links.files,prefix+'/files/');assert.equal(links.douyin,prefix+'/douyin/');
+});
+
+test('machine API key grants full-site writes without CSRF; bad key rejected; cookie still needs CSRF',async()=>{
+  const noteBody={title:'machine note',content:'from bearer',tags:['machine'],isPublic:false,isDraft:false};
+  let res=await call('/api/records/note',{method:'POST',body:noteBody});
+  assert.equal(res.status,401);
+  res=await call('/api/records/note',{method:'POST',body:noteBody,extra:{Authorization:'Bearer short-key'}});
+  assert.equal(res.status,401);
+  res=await call('/api/records/note',{method:'POST',body:noteBody,extra:{Authorization:'Bearer '+('0'.repeat(machineKey.length))}});
+  assert.equal(res.status,401);
+  res=await call('/api/records/note',{method:'POST',body:noteBody,extra:{Authorization:'Bearer '+machineKey}});
+  assert.equal(res.status,201);
+  const machineNote=await res.json();
+  assert.equal(machineNote.title,'machine note');
+  const image=await sharp({create:{width:16,height:16,channels:3,background:'#66ccff'}}).png().toBuffer();
+  const form=new FormData();form.append('image',new Blob([image],{type:'image/png'}),'machine.png');
+  res=await call('/api/media',{method:'POST',body:form,extra:{Authorization:'Bearer '+machineKey}});
+  assert.equal(res.status,201);
+  const media=await res.json();
+  assert.ok(media.id);
+  res=await call('/api/media/'+media.id,{extra:{Authorization:'Bearer '+machineKey}});
+  assert.equal(res.status,200);
+  res=await call('/api/drafts/new',{method:'PUT',body:{title:'Draft via key',content:'ok',tags:[],isPublic:false,isDraft:true},extra:{Authorization:'Bearer '+machineKey}});
+  assert.equal(res.status,200);
+  res=await call('/api/backup',{extra:{Authorization:'Bearer '+machineKey}});
+  assert.equal(res.status,200);
+  assert.equal((await res.json()).version,2);
+  // Browser cookie path still requires CSRF even while machine key exists.
+  const login=await call('/api/auth/login',{method:'POST',body:{username,password}});
+  assert.equal(login.status,200);
+  const jar=(login.headers.get('set-cookie')||'').split(';')[0];
+  res=await call('/api/records/note',{method:'POST',body:{title:'cookie no csrf',content:'x',tags:[],isPublic:false,isDraft:false},extra:{Cookie:jar}});
+  assert.equal(res.status,403);
+  res=await call('/api/records/note/'+machineNote.id,{method:'DELETE',extra:{Authorization:'Bearer '+machineKey}});
+  assert.equal(res.status,200);
+  res=await call('/api/media/'+media.id,{method:'DELETE',extra:{Authorization:'Bearer '+machineKey}});
+  assert.equal(res.status,200);
 });
